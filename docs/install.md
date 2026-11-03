@@ -13,8 +13,8 @@ confidentiality: "public"
 ## Commands
 
 ```bash
-npx skills add dama-poland/skills-dama-day-2026 --skill '*'        # all skills (needs repo access while the trial is private)
-npx skills add dama-poland/skills-dama-day-2026 --skill 'damapl-business-glossary'
+npx skills add dama-poland/skills-data-tools --skill '*'        # all skills (needs repo access while the trial is private)
+npx skills add dama-poland/skills-data-tools --skill 'damapl-business-glossary'
 npx skills add ./skills-dama-day-2026 --skill '*'                  # local path (dev, CI)
 npx skills add ./skills-dama-day-2026 --list                       # list without installing
 ```

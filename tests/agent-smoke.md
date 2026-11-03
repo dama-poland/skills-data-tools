@@ -30,7 +30,7 @@ The smoke test shows whether an agent and model can follow `AGENTS.md`, run the 
 ## Prompt
 
 ```text
-You are working in the repository skills-dama-day-2026. Read AGENTS.md first and follow it.
+You are working in the repository skills-data-tools. Read AGENTS.md first and follow it.
 Write outputs only under generated/. Do not change any file under examples/.
 
 1. Run the repository validator and report its result.

@@ -22,8 +22,8 @@ Six self-contained skills for data architects who work with AI agents on their o
 ## Install
 
 ```bash
-npx skills add dama-poland/skills-dama-day-2026 --skill '*'                  # all skills
-npx skills add dama-poland/skills-dama-day-2026 --skill 'damapl-business-glossary'
+npx skills add dama-poland/skills-data-tools --skill '*'                  # all skills
+npx skills add dama-poland/skills-data-tools --skill 'damapl-business-glossary'
 npx skills add ./skills-dama-day-2026 --skill '*'                            # local path (dev, CI)
 ```
 
