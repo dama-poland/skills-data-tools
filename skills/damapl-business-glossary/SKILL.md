@@ -124,10 +124,10 @@ Under Review when the profile enables `approval_reset`.
 | `site/index.html` | single offline page, D3 inlined: search, A-Z, graph, type/category/status/tier views, per-term pages, EN/PL switch |
 | `terms.json`, `glossary.csv` | flat exports for other tools |
 | `a-z.md` | Markdown index linking to the term files |
-| `validation.json` | violations and tiers from the last build |
+| `validation.json` | violations and tiers of the public terms from the last build |
 
 Only terms with `confidentiality: public` reach the site, `terms.json`,
-`glossary.csv` and `a-z.md`. A term without the field counts as not public.
+`glossary.csv`, `a-z.md` and `validation.json`. A term without the field counts as not public.
 `bg_site` prints every excluded term and drops links to it from the views.
 
 Open `generated/site/index.html` with a double click. No server, no network.

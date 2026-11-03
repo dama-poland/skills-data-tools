@@ -5,7 +5,8 @@ type/category views, per-term pages), terms.json, glossary.csv, a-z.md.
 D3 is inlined from assets/vendor, so index.html opens with no server and
 no network. Output goes to <repo>/generated/ (gitignored by default).
 Only terms with `confidentiality: public` reach the site, terms.json,
-glossary.csv and a-z.md; a missing value counts as not public. Excluded
+glossary.csv, a-z.md and validation.json; a missing value counts as not
+public. Excluded
 terms are listed on stdout, and links to them are dropped from the views.
 
   bg_site.py --repo G [--out DIR] [--dry-run]
@@ -105,6 +106,9 @@ def main():
   repo = need_repo(a)
   cfg, prof, terms, viol, tiers = run(repo)
   out = os.path.abspath(a.out or os.path.join(repo, 'generated'))
+  public_ids = {t['fm'].get('id') for t in terms if is_public(t)}
+  viol = [v for v in viol if v['term'] in public_ids]
+  tiers = {i: tr for i, tr in tiers.items() if i in public_ids}
   issues = {}
   for v in viol:
     if v['level'] == 'MUST':

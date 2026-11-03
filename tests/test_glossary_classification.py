@@ -109,12 +109,20 @@ class Classification(unittest.TestCase):
     data = json.load(open(os.path.join(out, 'terms.json'), encoding='utf-8'))
     ids = sorted(t['id'] for t in data['terms'])
     self.assertEqual(ids, ['alpha-widget', 'epsilon-signal'])
-    for rel in ('terms.json', 'glossary.csv', 'site/index.html', 'a-z.md'):
+    for rel in ('terms.json', 'glossary.csv', 'site/index.html', 'a-z.md',
+                'validation.json'):
       with open(os.path.join(out, rel), encoding='utf-8') as fh:
         text = fh.read()
       for word in ('Beta Ledger', 'beta-ledger', 'Gamma Queue',
                    'Delta Record', 'Odd Token', 'restricted notes'):
         self.assertNotIn(word, text, '%s leaks into %s' % (word, rel))
+
+  def test_validation_json_lists_only_public_terms(self):
+    out = os.path.join(self.repo, 'generated', 'validation.json')
+    data = json.load(open(out, encoding='utf-8'))
+    self.assertEqual(sorted(data['tiers']), ['alpha-widget', 'epsilon-signal'])
+    for v in data['violations']:
+      self.assertIn(v['term'], ('alpha-widget', 'epsilon-signal'))
 
   def test_site_prints_what_was_excluded(self):
     out = self.site.stdout
