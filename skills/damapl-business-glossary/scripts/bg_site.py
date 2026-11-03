@@ -7,7 +7,8 @@ no network. Output goes to <repo>/generated/ (gitignored by default).
 Only terms with `confidentiality: public` reach the site, terms.json,
 glossary.csv, a-z.md and validation.json; a missing value counts as not
 public. Excluded
-terms are listed on stdout, and links to them are dropped from the views.
+terms are listed on stdout. Links to any term that is not public, archived
+or not, are dropped from the views.
 A finding on a public term whose message names the id or a name of a term
 that is not public is kept with its rule id and the details withheld.
 
@@ -166,7 +167,9 @@ def main():
                        'no confidentiality'))
       continue
     items.append(term_json(t, tiers.get(i, 'Below'), issues.get(i, [])))
-  hidden = {i for i, _ in excluded}
+  # Archived terms that are not public count too: a public term may link one.
+  hidden = {t['fm'].get('id') for t in terms
+            if t['fm'].get('id') and not is_public(t)}
   items = [drop_hidden(x, hidden) for x in items]
   items.sort(key=lambda x: x['name'].lower())
   data = {

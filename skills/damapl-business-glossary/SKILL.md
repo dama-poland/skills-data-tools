@@ -129,7 +129,7 @@ Under Review when the profile enables `approval_reset`.
 Only terms with `confidentiality: public` reach the site, `terms.json`,
 `glossary.csv`, `a-z.md` and `validation.json`. A term without the field
 counts as not public. `bg_site` prints every excluded term and drops links
-to it from the views. A finding whose message names an excluded term keeps
+to any term that is not public, archived or not. A finding whose message names an excluded term keeps
 its rule id; its details are withheld.
 
 Open `generated/site/index.html` with a double click. No server, no network.

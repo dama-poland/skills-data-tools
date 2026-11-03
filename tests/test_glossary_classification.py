@@ -168,6 +168,28 @@ class Classification(unittest.TestCase):
         with open(path, 'w', encoding='utf-8') as fh:
           fh.write(text)
 
+  def test_site_drops_links_to_archived_hidden_term(self):
+    # alpha-widget (public) links beta-ledger; once beta-ledger is both
+    # restricted and Archived, its id must still not reach any export.
+    saved = self.edit_term('beta-ledger', 'status: Draft\n',
+                           'status: Archived\n')
+    try:
+      out = os.path.join(self.tmp, 'out-archived')
+      run('bg_site.py', '--repo', self.repo, '--out', out)
+      data = json.load(open(os.path.join(out, 'terms.json'),
+                            encoding='utf-8'))
+      alpha = [t for t in data['terms'] if t['id'] == 'alpha-widget'][0]
+      self.assertNotIn('beta-ledger', alpha['related_terms'])
+      for rel in ('terms.json', 'glossary.csv', 'site/index.html', 'a-z.md',
+                  'validation.json'):
+        with open(os.path.join(out, rel), encoding='utf-8') as fh:
+          text = fh.read()
+        for word in ('beta-ledger', 'Beta Ledger'):
+          self.assertNotIn(word, text, '%s leaks into %s' % (word, rel))
+    finally:
+      with open(saved[0], 'w', encoding='utf-8') as fh:
+        fh.write(saved[1])
+
   def test_public_findings_withholds_hidden_names_and_ids(self):
     from bg_site import public_findings
     terms = [
