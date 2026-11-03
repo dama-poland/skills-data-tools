@@ -36,7 +36,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bg_adapters import run_adapter
+from bg_adapters import SourceError, run_adapter
 from bg_core import (CLASSIFICATIONS, as_list, bump_text, common_args,
                      default_author, dump_yaml, highest_classification,
                      load_config, load_profile, load_terms, load_yaml,
@@ -172,7 +172,10 @@ def main():
   author = a.author or default_author(cfg)
 
   if a.from_sources:
-    ops = propose(repo, cfg, terms)
+    try:
+      ops = propose(repo, cfg, terms)
+    except SourceError as exc:
+      sys.exit('ERROR %s' % exc)
     out = os.path.join(repo, '.glossary', 'proposals.yaml')
     write_text(out, dump_yaml(ops), a.dry_run)
     print('%d proposal(s) -> %s (review, then --patch it)' % (

@@ -17,7 +17,8 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bg_adapters import ADAPTERS, KIND_HELP, detect_kind, run_adapter
+from bg_adapters import (ADAPTERS, KIND_HELP, SourceError, detect_kind,
+                         run_adapter)
 from bg_core import (dump_yaml, load_config, load_terms, need_repo, slugify,
                      common_args, write_text, as_list, name_hash, name_key,
                      highest_classification, source_ref_of, term_name_keys)
@@ -108,7 +109,10 @@ def main():
     if not os.path.exists(os.path.expanduser(path)):
       print('skip (not found): %s' % path, file=sys.stderr)
       continue
-    got = run_adapter(kind, path)
+    try:
+      got = run_adapter(kind, path)
+    except SourceError as exc:
+      sys.exit('ERROR %s' % exc)
     print('%-10s %-40s %d raw candidates' % (kind, path[-40:], len(got)))
     raw += got
 

@@ -174,8 +174,12 @@ def parse_body(body):
 
 
 def read_term(path):
-  with open(path, encoding='utf-8') as fh:
-    text = fh.read()
+  try:
+    with open(path, encoding='utf-8') as fh:
+      text = fh.read()
+  except UnicodeDecodeError as exc:
+    sys.exit('ERROR cannot read %s: not valid UTF-8 (byte %d); save it '
+             'as UTF-8' % (path, exc.start))
   fm_text, body = split_term(text)
   try:
     fm = yaml.safe_load(fm_text) or {}

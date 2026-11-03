@@ -21,6 +21,15 @@ summary: The source adapters of the business-glossary skill, what each reads, th
 `obsidian` and `folder` treat a note whose path or title matches
 `glossary|terms|definitions` as a term list, not as one term.
 
+## Encoding
+
+Text sources (notes, CSV, HTML) must be UTF-8, with or without a byte order
+mark; UTF-16 with a byte order mark is also read. Any other file (Latin-1,
+UTF-16 without a mark, binary) and any damaged `.docx` or `.xlsx` stops
+`bg_discover` and `bg_update --from-sources` with an `ERROR` that names the
+file. Nothing is decoded with replacement characters and no file is skipped
+silently: convert the file to UTF-8 or remove it from the source, then rerun.
+
 ## Candidate ids
 
 The id is the ASCII slug of the name. Polish and other Latin diacritics are

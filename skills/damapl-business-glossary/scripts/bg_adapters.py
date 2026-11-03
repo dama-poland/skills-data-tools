@@ -8,8 +8,10 @@ Add an adapter by writing a function and registering it in ADAPTERS.
 The `folder` adapter is the fallback for any unknown kind.
 """
 
+import codecs
 import csv
 import html.parser
+import io
 import os
 import re
 import zipfile
@@ -32,6 +34,35 @@ TYPE_HINTS = (
   ('Record', r'\b(record|document|report|log|row|message)\b'),
   ('Component', r'\b(service|system|application|api|database|platform)\b'),
 )
+
+
+class SourceError(Exception):
+  """A source file cannot be read; the message names the file."""
+
+
+def read_source_text(path):
+  """Read a text source as UTF-8 (or UTF-16 with a byte order mark).
+  Anything else raises SourceError; nothing is decoded with replacement
+  characters and no file is skipped silently."""
+  try:
+    with open(path, 'rb') as fh:
+      data = fh.read()
+  except OSError as exc:
+    raise SourceError('cannot read %s: %s' % (path, exc.strerror or exc))
+  if data.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
+    enc = 'utf-16'
+  elif b'\x00' in data:
+    raise SourceError(
+      'cannot read %s: contains NUL bytes (binary file, or UTF-16 without '
+      'a byte order mark); save it as UTF-8' % path)
+  else:
+    enc = 'utf-8-sig'
+  try:
+    return data.decode(enc)
+  except UnicodeDecodeError as exc:
+    raise SourceError(
+      'cannot read %s: not valid %s (byte %d); save it as UTF-8' % (
+        path, 'UTF-16' if enc == 'utf-16' else 'UTF-8', exc.start))
 
 
 def guess_type(text):
@@ -119,8 +150,7 @@ def a_obsidian(path, opts):
   root = path if os.path.isdir(path) else os.path.dirname(path)
   min_chars = int(opts.get('min_chars', 0))
   for f in _walk(path, ('.md', '.markdown')):
-    with open(f, encoding='utf-8', errors='replace') as fh:
-      text = fh.read()
+    text = read_source_text(f)
     c = note_candidate(f, text, 'obsidian', root)
     rel = os.path.relpath(f, root)
     gl = is_glossary_note(rel, c['name'])
@@ -164,8 +194,7 @@ def a_folder(path, opts):
   lines and glossary tables inside notes yield extra candidates."""
   root = path if os.path.isdir(path) else os.path.dirname(path)
   for f in _walk(path, TEXT_EXT):
-    with open(f, encoding='utf-8', errors='replace') as fh:
-      text = fh.read()
+    text = read_source_text(f)
     rel = os.path.relpath(f, root)
     c = note_candidate(f, text, 'folder', root)
     gl = is_glossary_note(rel, c['name'])
@@ -200,15 +229,15 @@ def _row_candidate(row, kind, ref):
 
 def a_csv(path, opts):
   for f in _walk(path, ('.csv', '.tsv')):
-    with open(f, encoding='utf-8-sig', errors='replace', newline='') as fh:
-      sample = fh.read(4096)
-      fh.seek(0)
-      delim = '\t' if f.endswith('.tsv') else (
-        ';' if sample.count(';') > sample.count(',') else ',')
-      for i, row in enumerate(csv.DictReader(fh, delimiter=delim), 2):
-        c = _row_candidate(row, 'csv', '%s:%d' % (os.path.basename(f), i))
-        if c:
-          yield c
+    text = read_source_text(f)
+    sample = text[:4096]
+    delim = '\t' if f.endswith('.tsv') else (
+      ';' if sample.count(';') > sample.count(',') else ',')
+    reader = csv.DictReader(io.StringIO(text, newline=''), delimiter=delim)
+    for i, row in enumerate(reader, 2):
+      c = _row_candidate(row, 'csv', '%s:%d' % (os.path.basename(f), i))
+      if c:
+        yield c
 
 
 def _xlsx_rows(path):
@@ -240,7 +269,11 @@ def _xlsx_rows(path):
 
 def a_xlsx(path, opts):
   for f in _walk(path, ('.xlsx',)):
-    rows = list(_xlsx_rows(f))
+    try:
+      rows = list(_xlsx_rows(f))
+    except (zipfile.BadZipFile, KeyError, IndexError, ET.ParseError) as exc:
+      raise SourceError('cannot read %s: not a valid .xlsx file (%s)' % (
+        f, exc))
     if not rows:
       continue
     cols = sorted(rows[0], key=lambda c: (len(c), c))
@@ -281,8 +314,7 @@ def a_confluence(path, opts):
   definition. Sidebar/breadcrumb boilerplate is skipped by length."""
   root = path if os.path.isdir(path) else os.path.dirname(path)
   for f in _walk(path, ('.html', '.htm')):
-    with open(f, encoding='utf-8', errors='replace') as fh:
-      raw = fh.read()
+    raw = read_source_text(f)
     p = _Text()
     p.feed(raw)
     name = (p.h1 or p.title).strip()
@@ -300,8 +332,12 @@ def a_confluence(path, opts):
 def a_docx(path, opts):
   w = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
   for f in _walk(path, ('.docx',)):
-    with zipfile.ZipFile(f) as z:
-      root = ET.fromstring(z.read('word/document.xml'))
+    try:
+      with zipfile.ZipFile(f) as z:
+        root = ET.fromstring(z.read('word/document.xml'))
+    except (zipfile.BadZipFile, KeyError, ET.ParseError) as exc:
+      raise SourceError('cannot read %s: not a valid .docx file (%s)' % (
+        f, exc))
     paras = [''.join(t.text or '' for t in p.iter(w + 't'))
              for p in root.iter(w + 'p')]
     paras = [x.strip() for x in paras if x.strip()]
