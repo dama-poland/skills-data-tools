@@ -96,7 +96,7 @@ function vTerm(id){const t=BY[id];if(!t){app.innerHTML='<p>Unknown term.</p>';re
  <h2>Relations</h2><div class="rel">${rel('Is a',t.relations.is_a)}${rel('Has a',t.relations.has_a)}${rel('Subtypes',inc('is_a'))}${rel('Part of',inc('has_a'))}${rel('Related',t.related_terms)}${rel('Homonym of',t.homonym_of)}${rel('Boundary',t.boundary_term_ref?[t.boundary_term_ref]:[])}${rel('Successor',t.successor_term?[t.successor_term]:[])}</div>
  <div id="graph" style="height:300px;margin-top:12px"></div>
  ${t.alternative_names.length||t.acronyms.length?`<p class="mut">Also known as: ${esc(t.alternative_names.concat(t.acronyms).join(', '))}</p>`:''}
- ${t.concordance.length?`<h2>Sources</h2>${t.concordance.map(c=>`<div><a href="${esc(c.url)}">${esc(c.label)}</a></div>`).join('')}`:''}
+ ${t.concordance.length?`<h2>Sources</h2>${t.concordance.map(c=>`<div>${/^https?:\/\//i.test(c.url||'')?`<a href="${esc(c.url)}" rel="noopener noreferrer">${esc(c.label)}</a>`:esc(c.label)}</div>`).join('')}`:''}
  <p class="mut">${owners}${owners?' | ':''}reviewed: ${esc(t.last_reviewed||'never')} | origin: ${esc(t.source_origin||'n/a')}</p>
  ${t.issues.length?`<h2>Open rule issues</h2><ul>${t.issues.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>`:''}`;
  drawGraph($('#graph'),id,300)}
