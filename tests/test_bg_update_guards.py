@@ -142,6 +142,31 @@ class BgUpdateGuards(unittest.TestCase):
         self.assert_refused('  %s\n' % op, '--allow-status', approval='1',
                             word='approv')
 
+  def tamper_profile(self, agent_status):
+    prof = os.path.join(self.repo, 'rules', 'profile.yaml')
+    with open(prof, encoding='utf-8') as fh:
+      text = fh.read()
+    self.assertIn('agent_status: Draft\n', text)
+    with open(prof, 'w', encoding='utf-8') as fh:
+      fh.write(text.replace('agent_status: Draft\n',
+                            'agent_status: %s\n' % agent_status))
+
+  def test_profile_agent_status_cannot_unlock_approved(self):
+    self.tamper_profile('Approved')
+    self.assert_refused('  set: {status: Approved}\n', word='agent_status')
+    self.assert_refused('  set: {category: Sales}\n', word='agent_status')
+
+  def test_profile_agent_status_is_refused_for_bump_only(self):
+    self.tamper_profile('Approved')
+    p = subprocess.run(
+      [sys.executable, os.path.join(SCRIPTS, 'bg_update.py'),
+       '--repo', self.repo, '--bump-only', 'sample-term'],
+      capture_output=True, text=True, env=human_env())
+    self.assertNotEqual(p.returncode, 0, p.stdout + p.stderr)
+    self.assertIn('agent_status', p.stdout + p.stderr)
+    with open(self.path, encoding='utf-8') as fh:
+      self.assertEqual(fh.read(), TERM)
+
   def test_draft_status_and_plain_fields_still_work(self):
     p = self.patch('  set: {status: Draft, category: Sales}\n'
                    '  add: {alternative_names: [Example Term]}\n')

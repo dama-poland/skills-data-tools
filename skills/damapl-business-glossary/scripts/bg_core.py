@@ -25,6 +25,11 @@ CONFIG_NAME = 'glossary.yaml'
 FM_RE = re.compile(r'\A---\n(.*?)\n---\n?(.*)\Z', re.S)
 SLUG_RE = re.compile(r'^[a-z0-9]+(-[a-z0-9]+)*$')
 REL_KEYS = ('is_a', 'has_a', 'values', 'realized_by', 'implemented_by')
+# The only status an agent writes. Hard-coded, not read from the profile:
+# the profile is a repo file an agent can edit.
+AGENT_STATUS = 'Draft'
+# Written by a human only; no script writes them.
+APPROVAL_FIELDS = ('approved_by', 'approved_on', 'approved_version')
 # Lowest to highest. A source without a classification counts as
 # UNCLASSIFIED; an unknown value counts as the highest (fail-safe).
 CLASSIFICATIONS = ('public', 'internal', 'restricted')

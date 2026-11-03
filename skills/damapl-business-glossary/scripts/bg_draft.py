@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Draft term files from accepted candidates. Create-only: an existing
 term is never overwritten (use bg_update.py for that). Status is always
-the profile's agent_status (Draft). Every term gets the candidate's
+Draft, whatever the profile template says, and approval fields in the
+template are dropped. Every term gets the candidate's
 confidentiality and all of its sources in `source_refs`.
 
   bg_draft.py --repo G --top 20            # skips accept: false
@@ -15,10 +16,11 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bg_core import (SLUG_RE, as_list, common_args, default_author,
-                     dump_yaml, highest_classification, load_config,
-                     load_profile, load_terms, load_yaml, need_repo,
-                     split_sentences, today, write_text)
+from bg_core import (AGENT_STATUS, APPROVAL_FIELDS, SLUG_RE, as_list,
+                     common_args, default_author, dump_yaml,
+                     highest_classification, load_config, load_profile,
+                     load_terms, load_yaml, need_repo, split_sentences,
+                     today, write_text)
 
 WIKI = re.compile(r'\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]*))?\]\]')
 
@@ -39,7 +41,9 @@ def render(prof, cfg, cand, author):
     opts['type'] = cfg.get('default_type', 'Concept')
   fm = {}
   for k, v in (prof.get('template') or {}).items():
-    fm[k] = v.format(**opts) if isinstance(v, str) else v
+    if k not in APPROVAL_FIELDS:
+      fm[k] = v.format(**opts) if isinstance(v, str) else v
+  fm['status'] = AGENT_STATUS
   fm['confidentiality'] = conf
   fm['source_refs'] = sources
   if cand.get('aliases'):

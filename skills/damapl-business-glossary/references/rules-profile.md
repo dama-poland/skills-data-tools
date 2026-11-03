@@ -14,7 +14,9 @@ options: {owners: true, integrations: false, require_what_it_is_not: true,
           owner_email_domain: ""}
 types: [...]
 statuses: [...]
-template: {...}          # fields and defaults for new terms
+agent_status: Draft      # must be Draft; bg_update refuses any other value
+template: {...}          # fields and defaults for new terms; bg_draft
+                         # always writes status Draft and drops approved_*
 sections: [...]          # body sections drafted for new terms
 tiers: [...]             # Gold, Silver, Bronze
 rules:

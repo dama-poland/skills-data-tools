@@ -21,8 +21,9 @@ Guards (set, add and remove alike): `id`, `created`, `created_by` are
 immutable; `version`, `version_date`, `changed_by` belong to the bump;
 `approved_by`, `approved_on`, `approved_version` are written by a human
 only and always refused. `status` changes only through `set`, and only to
-the profile's agent_status unless --allow-status is given together with
-the human-only signal DAMAPL_HUMAN_APPROVAL=1. An agent never sets it.
+Draft unless --allow-status is given together with the human-only signal
+DAMAPL_HUMAN_APPROVAL=1. An agent never sets it. A profile whose
+`agent_status` is not Draft is refused before any change.
 `confidentiality` changes only through `set` and never goes down
 (public < internal < restricted); `source_refs` entries are never removed.
 --from-sources proposals raise confidentiality and add the source ref when
@@ -37,7 +38,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bg_adapters import SourceError, run_adapter
-from bg_core import (CLASSIFICATIONS, as_list, bump_text, common_args,
+from bg_core import (AGENT_STATUS, APPROVAL_FIELDS, CLASSIFICATIONS,
+                     as_list, bump_text, common_args,
                      default_author, dump_yaml, highest_classification,
                      load_config, load_profile, load_terms, load_yaml,
                      name_key, need_repo, normalize_classification,
@@ -46,7 +48,6 @@ from bg_core import (CLASSIFICATIONS, as_list, bump_text, common_args,
 
 IMMUTABLE = ('id', 'created_by', 'created')
 BUMP_FIELDS = ('version', 'version_date', 'changed_by')
-APPROVAL_FIELDS = ('approved_by', 'approved_on', 'approved_version')
 HUMAN_APPROVAL_ENV = 'DAMAPL_HUMAN_APPROVAL'
 
 
@@ -72,9 +73,8 @@ def check_classification(kind, k, v, fm):
       raise ValueError('source_refs entries are never removed (use add)')
 
 
-def check_guards(op, fm, prof, allow_status):
+def check_guards(op, fm, allow_status):
   """Refuse protected fields in every field op (set, add, remove)."""
-  agent_status = prof.get('agent_status', 'Draft')
   for kind in ('set', 'add', 'remove'):
     for k, v in (op.get(kind) or {}).items():
       check_classification(kind, k, v, fm)
@@ -88,14 +88,14 @@ def check_guards(op, fm, prof, allow_status):
       if k == 'status' and kind != 'set':
         raise ValueError('status is a single value; `%s` on status is '
                          'refused (use set)' % kind)
-      if k == 'status' and not allow_status and v != agent_status:
-        raise ValueError('agents only write status %s' % agent_status)
+      if k == 'status' and not allow_status and v != AGENT_STATUS:
+        raise ValueError('agents only write status %s' % AGENT_STATUS)
 
 
 def apply_op(t, op, prof, author, allow_status):
   text = t['text']
   fm = t['fm']
-  check_guards(op, fm, prof, allow_status)
+  check_guards(op, fm, allow_status)
   for k, v in (op.get('set') or {}).items():
     if fm.get(k) != v:
       text = set_fm_field(text, k, v)
@@ -167,6 +167,10 @@ def main():
   repo = need_repo(a)
   cfg = load_config(repo)
   prof = load_profile(repo, cfg)
+  if prof.get('agent_status', AGENT_STATUS) != AGENT_STATUS:
+    sys.exit('ERROR profile agent_status is %r; agents only write status '
+             '%s, so a profile cannot raise it' % (prof['agent_status'],
+                                                   AGENT_STATUS))
   terms = load_terms(repo, cfg)
   by_id = {t['fm'].get('id'): t for t in terms}
   author = a.author or default_author(cfg)
