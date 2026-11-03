@@ -10,7 +10,9 @@ damapl-business-glossary), gate 3 needs map_build.py and gaps_build.py (skill
 damapl-model-change). A gate whose scripts are missing exits with code 2.
 
 Gate 1  second brain: notes in sources/ and source notes in systems/ have owner, date
-        and classification; sample answers follow the answer contract.
+        and classification; sample answers follow the answer contract. For the
+        answer's classification a source with none counts as internal and an
+        unknown value as restricted (term-schema.md).
 Gate 2  glossary: no MUST findings; every term used by an approved concept link
         reaches at least the lowest tier of the active profile.
 Gate 3  architecture: every approved concept link points to an Approved term; map
@@ -120,6 +122,15 @@ def metadata_problems(label: str, fm: dict) -> list[str]:
     return problems
 
 
+def source_classification(note: dict) -> str:
+    """A source with no classification counts as internal; an unknown value counts as
+    restricted (fail-safe), as in term-schema.md."""
+    value = str(note.get("confidentiality") or "").strip().lower()
+    if not value:
+        return "internal"
+    return value if value in CLASSIFICATIONS else "restricted"
+
+
 def gate_1(args) -> Report:
     report = Report("Gate 1: second brain")
     notes = source_notes(args.systems, args.data)
@@ -130,7 +141,7 @@ def gate_1(args) -> Report:
 
     declared = load_systems(args.systems) + load_systems(args.data / "sources")
     known = {str(n["source_id"]) for n in declared if n.get("source_id")}
-    classes = {str(n["source_id"]): str(n.get("confidentiality") or "public")
+    classes = {str(n["source_id"]): source_classification(n)
                for n in declared if n.get("source_id")}
     if not args.answers.is_file():
         report.add(f"sample answer follows the answer contract ({args.answers.name})",

@@ -135,6 +135,44 @@ class GateTest(unittest.TestCase):
             result = gate(1, "--data", str(data), "--answers", str(answer))
             self.assertEqual(result.returncode, 0, result.stdout)
 
+    def _answer_citing_raw_model(self, tmp):
+        answer = Path(tmp) / "answer.md"
+        answer.write_text(ANSWER.read_text().replace(
+            "retrieved 2026-10-24.\n\n## Confidence",
+            "retrieved 2026-10-24.\n- `sources/raw-model.md`, `RAW-MODEL-v1`, "
+            "retrieved 2026-10-24.\n\n## Confidence"))
+        return answer
+
+    def test_gate_1_treats_source_without_classification_as_internal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data = self._demo_with_source(
+                tmp, 'title: "Raw model"\nsource_id: "RAW-MODEL-v1"\n'
+                     'owner: "Synthetic demo maintainers"\n'
+                     'retrieved: "2026-10-24"\n')
+            answer = self._answer_citing_raw_model(tmp)
+            result = gate(1, "--data", str(data), "--answers", str(answer))
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertIn("Classification is lower than the highest classification",
+                          result.stdout)
+            answer.write_text(answer.read_text().replace(
+                "## Classification\n\nPublic.", "## Classification\n\nInternal."))
+            result = gate(1, "--data", str(data), "--answers", str(answer))
+            self.assertNotIn("Classification is lower", result.stdout)
+
+    def test_gate_1_treats_source_with_unknown_classification_as_restricted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data = self._demo_with_source(
+                tmp, 'title: "Raw model"\nsource_id: "RAW-MODEL-v1"\n'
+                     'owner: "Synthetic demo maintainers"\n'
+                     'retrieved: "2026-10-24"\nconfidentiality: "secret-ish"\n')
+            answer = self._answer_citing_raw_model(tmp)
+            answer.write_text(answer.read_text().replace(
+                "## Classification\n\nPublic.", "## Classification\n\nInternal."))
+            result = gate(1, "--data", str(data), "--answers", str(answer))
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertIn("Classification is lower than the highest classification",
+                          result.stdout)
+
     def test_gate_3_passes_when_terms_are_approved(self):
         with tempfile.TemporaryDirectory() as tmp:
             data = Path(tmp) / "data"
