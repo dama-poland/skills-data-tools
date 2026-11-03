@@ -65,7 +65,7 @@ links: [persona]              # wikilinks to other candidates
 sources: ['obsidian:projects/Customer Journey.md', 'csv:terms.csv:3']
 score: 12                     # mentions across all notes + sources + definition
 exists: false                 # already a term in the repo
-accept: null                  # set true to select with bg_draft --accepted
+accept: null                  # true = pick with --accepted; false = never draft with --top
 ```
 
 ## Discovery rules
@@ -75,7 +75,7 @@ accept: null                  # set true to select with bg_draft --accepted
   dates, `inbox`) are dropped. Candidates without a definition are dropped
   unless `--keep-empty`.
 - Ranking is a heuristic. Show the top of the list to the user and let them
-  veto.
+  veto with `accept: false`.
 
 ## Adding an adapter
 

@@ -81,9 +81,12 @@ python3 $S/bg_site.py --repo ./glossary                # generated/site/index.ht
 2. `bg_discover` (with the `damapl-concept-extraction` skill, which lists every meaning
    found per term with citations and does not choose) reads the sources through adapters, merges duplicates by id,
    ranks by mentions, and writes `.glossary/candidates.yaml`. Show the user the
-   top candidates and let them veto or set `accept: true`.
-3. `bg_draft` creates term files from accepted candidates. It never overwrites
-   an existing term. Placeholders say `TODO` and show up as `DRAFT-TODO`.
+   top candidates and let them veto (`accept: false`) or select
+   (`accept: true`).
+3. `bg_draft` creates term files from the candidates you selected: `--accepted`
+   takes those marked `accept: true`, `--top N` takes the first N and skips any
+   marked `accept: false`. It never overwrites an existing term. Placeholders
+   say `TODO` and show up as `DRAFT-TODO`.
 4. Complete each draft: a 1-2 sentence definition, Description Details,
    What it is, What it is not. Do it with `bg_update`, not by retyping files.
 5. `bg_validate` reports MUST and SHOULD findings and the tier (Bronze, Silver,

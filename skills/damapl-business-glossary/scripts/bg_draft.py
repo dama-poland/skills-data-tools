@@ -4,7 +4,7 @@ term is never overwritten (use bg_update.py for that). Status is always
 the profile's agent_status (Draft). Every term gets the candidate's
 confidentiality and all of its sources in `source_refs`.
 
-  bg_draft.py --repo G --top 20
+  bg_draft.py --repo G --top 20            # skips accept: false
   bg_draft.py --repo G --ids candidate,job-offer
   bg_draft.py --repo G --accepted          # candidates with accept: true
 """
@@ -84,7 +84,9 @@ def main():
   ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
   common_args(ap)
   g = ap.add_mutually_exclusive_group(required=True)
-  g.add_argument('--top', type=int, help='draft the top N new candidates')
+  g.add_argument('--top', type=int,
+                 help='draft the top N new candidates; a candidate the '
+                      'user vetoed with accept: false is skipped')
   g.add_argument('--ids', help='comma list of candidate ids')
   g.add_argument('--accepted', action='store_true',
                  help="candidates marked accept: true in candidates.yaml")
@@ -98,7 +100,11 @@ def main():
     sys.exit('run bg_discover.py first')
   cands = load_yaml(cpath).get('candidates') or []
   if a.top:
-    pick = [c for c in cands if not c.get('exists')][:a.top]
+    for c in cands:
+      if c.get('accept') is False:
+        print('skip (accept: false): %s' % c['id'])
+    pick = [c for c in cands
+            if not c.get('exists') and c.get('accept') is not False][:a.top]
   elif a.ids:
     want = set(a.ids.split(','))
     pick = [c for c in cands if c['id'] in want]
