@@ -92,6 +92,10 @@ class Portable(unittest.TestCase):
 
   def test_author_is_resolved_when_a_term_is_written(self):
     cfg = load_yaml(os.path.join(self.repo, 'glossary.yaml'))
+    # Run outside any checkout so a local git user.email cannot leak in.
+    cwd = os.getcwd()
+    os.chdir(self.tmp)
+    self.addCleanup(os.chdir, cwd)
     with mock.patch.dict(os.environ, self.env, clear=True):
       self.assertEqual(default_author(cfg), EMAIL)
     with mock.patch.dict(os.environ, dict(self.env, BG_AUTHOR='Named Person'),
