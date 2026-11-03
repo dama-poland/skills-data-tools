@@ -72,7 +72,7 @@ Preview the impact:
 python3 /path/to/repository/skills/damapl-second-brain-kickoff/scripts/freshness-review.py .
 ```
 
-The output should match `examples/expected/freshness-review.txt`. To mark the note for human review without rewriting its claim:
+The output should match `examples/expected/freshness-review.txt`. To mark the note for human review without rewriting its claim (an approved note keeps its `approved` status and gets one `review_reason` line; running it again changes nothing):
 
 ```sh
 python3 /path/to/repository/skills/damapl-second-brain-kickoff/scripts/freshness-review.py . --apply
