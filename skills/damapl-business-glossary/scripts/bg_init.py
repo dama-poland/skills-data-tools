@@ -44,6 +44,10 @@ summary: Business glossary repo with one Markdown file per term and
 """
 
 
+# Files a user may already own in the target folder; never overwritten.
+PRESERVED = ('README.md', 'Makefile', '.gitignore')
+
+
 def git_email():
   import subprocess
   try:
@@ -71,8 +75,8 @@ def main():
   if bad:
     sys.exit('unsupported language(s): %s' % bad)
   if a.profile.replace('.yaml', '') == 'standard':
-    sys.exit('the standard profile is planned and not yet available '
-             '(see SPEC.md 5.3); use --profile minimal')
+    sys.exit('the standard profile is planned and not yet available; '
+             'use --profile minimal')
   prof_src = a.profile if os.path.isfile(a.profile) else os.path.join(
     PROFILES_DIR, a.profile.replace('.yaml', '') + '.yaml')
   if not os.path.isfile(prof_src):
@@ -96,6 +100,11 @@ def main():
     ('terms/.gitkeep', ''),
     ('.glossary/ids.lock', ''),
   ]
+  keep = [rel for rel in PRESERVED
+          if os.path.exists(os.path.join(root, rel))]
+  for rel in keep:
+    print('warning: %s already exists; left untouched' % rel)
+  plan = [(rel, text) for rel, text in plan if rel not in keep]
   for rel, _ in plan:
     print('%s %s' % ('would create' if a.dry_run else 'create', rel))
   print('%s rules/profile.yaml (from %s)' % (

@@ -2,7 +2,7 @@
 
 A synthetic second-brain vault (tests/fixtures/second-brain) runs end to end
 (init, discover, draft, validate, update, relations, site) under both the
-the `minimal` profile. The `standard` profile is planned (SPEC.md 5.3).
+the `minimal` profile. The `standard` profile is planned.
 """
 
 import hashlib
@@ -178,6 +178,39 @@ class StandardProfilePlanned(unittest.TestCase):
               ok=False)
       self.assertNotEqual(p.returncode, 0)
       self.assertIn('planned', p.stdout + p.stderr)
+      self.assertNotIn('SPEC.md', p.stdout + p.stderr)
+    finally:
+      shutil.rmtree(tmp)
+
+
+class InitKeepsExistingFiles(unittest.TestCase):
+  NAMES = ('README.md', 'Makefile', '.gitignore')
+
+  def test_existing_readme_makefile_gitignore_are_not_overwritten(self):
+    tmp = tempfile.mkdtemp()
+    try:
+      for name in self.NAMES:
+        with open(os.path.join(tmp, name), 'w', encoding='utf-8') as fh:
+          fh.write('mine: %s\n' % name)
+      p = run('bg_init.py', tmp, '--name', 'Fresh')
+      for name in self.NAMES:
+        with open(os.path.join(tmp, name), encoding='utf-8') as fh:
+          self.assertEqual(fh.read(), 'mine: %s\n' % name)
+        self.assertRegex(p.stdout + p.stderr, r'(?i)warning.*%s' % name)
+      for name in ('glossary.yaml', 'terms/.gitkeep', '.glossary/ids.lock',
+                   'rules/profile.yaml'):
+        self.assertTrue(os.path.exists(os.path.join(tmp, name)), name)
+    finally:
+      shutil.rmtree(tmp)
+
+  def test_dry_run_reports_existing_files_as_skipped(self):
+    tmp = tempfile.mkdtemp()
+    try:
+      with open(os.path.join(tmp, 'README.md'), 'w', encoding='utf-8') as fh:
+        fh.write('mine\n')
+      p = run('bg_init.py', tmp, '--dry-run')
+      self.assertNotIn('would create README.md', p.stdout)
+      self.assertIn('README.md', p.stdout + p.stderr)
     finally:
       shutil.rmtree(tmp)
 

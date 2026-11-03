@@ -76,7 +76,8 @@ python3 $S/bg_site.py --repo ./glossary                # generated/site/index.ht
 ```
 
 1. `bg_init` scaffolds `glossary.yaml`, `rules/profile.yaml`, `terms/`,
-   Makefile, README. It refuses to overwrite an existing repo.
+   Makefile, README. It refuses to overwrite an existing repo and leaves an existing
+   README.md, Makefile or .gitignore untouched with a warning.
 2. `bg_discover` (with the `damapl-concept-extraction` skill, which lists every meaning
    found per term with citations and does not choose) reads the sources through adapters, merges duplicates by id,
    ranks by mentions, and writes `.glossary/candidates.yaml`. Show the user the
