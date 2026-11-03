@@ -17,6 +17,13 @@ Patch op:
     sections: {What it is: "- bullet"}
     level: b                 # optional; default b, use c for typo fixes
 
+Guards (set, add and remove alike): `id`, `created`, `created_by` are
+immutable; `version`, `version_date`, `changed_by` belong to the bump;
+`approved_by`, `approved_on`, `approved_version` are written by a human
+only and always refused. `status` changes only through `set`, and only to
+the profile's agent_status unless --allow-status is given together with
+the human-only signal DAMAPL_HUMAN_APPROVAL=1. An agent never sets it.
+
   bg_update.py --repo G --patch p.yaml --dry-run
 """
 
@@ -34,19 +41,32 @@ from bg_core import (as_list, bump_text, common_args, default_author,
 
 IMMUTABLE = ('id', 'created_by', 'created')
 BUMP_FIELDS = ('version', 'version_date', 'changed_by')
+APPROVAL_FIELDS = ('approved_by', 'approved_on', 'approved_version')
+HUMAN_APPROVAL_ENV = 'DAMAPL_HUMAN_APPROVAL'
+
+
+def check_guards(op, prof, allow_status):
+  """Refuse protected fields in every field op (set, add, remove)."""
+  agent_status = prof.get('agent_status', 'Draft')
+  for kind in ('set', 'add', 'remove'):
+    for k, v in (op.get(kind) or {}).items():
+      if k in IMMUTABLE:
+        raise ValueError('`%s` is immutable (ids never change)' % k)
+      if k in BUMP_FIELDS:
+        raise ValueError('`%s` is managed by the bump' % k)
+      if k in APPROVAL_FIELDS:
+        raise ValueError('`%s` records a human approval; agents never '
+                         'write it' % k)
+      if k == 'status' and kind != 'set':
+        raise ValueError('status is a single value; `%s` on status is '
+                         'refused (use set)' % kind)
+      if k == 'status' and not allow_status and v != agent_status:
+        raise ValueError('agents only write status %s' % agent_status)
 
 
 def apply_op(t, op, prof, author, allow_status):
   text = t['text']
-  for k in (op.get('set') or {}):
-    if k in IMMUTABLE:
-      raise ValueError('`%s` is immutable (ids never change)' % k)
-    if k in BUMP_FIELDS:
-      raise ValueError('`%s` is managed by the bump' % k)
-    if k == 'status' and not allow_status and \
-        op['set'][k] != prof.get('agent_status', 'Draft'):
-      raise ValueError('agents only write status %s (use --allow-status)'
-                       % prof.get('agent_status', 'Draft'))
+  check_guards(op, prof, allow_status)
   fm = t['fm']
   for k, v in (op.get('set') or {}).items():
     if fm.get(k) != v:
@@ -99,8 +119,13 @@ def main():
   g.add_argument('--bump-only', help='comma list of term ids')
   ap.add_argument('--level', choices=('a', 'b', 'c'), default='b')
   ap.add_argument('--author', default=None)
-  ap.add_argument('--allow-status', action='store_true')
+  ap.add_argument('--allow-status', action='store_true',
+                  help='allow a status other than Draft; needs the '
+                  'human-only signal %s=1' % HUMAN_APPROVAL_ENV)
   a = ap.parse_args()
+  if a.allow_status and os.environ.get(HUMAN_APPROVAL_ENV) != '1':
+    sys.exit('ERROR --allow-status needs %s=1, set by a human; agents '
+             'never set it' % HUMAN_APPROVAL_ENV)
   repo = need_repo(a)
   cfg = load_config(repo)
   prof = load_profile(repo, cfg)

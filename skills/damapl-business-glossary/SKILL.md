@@ -26,6 +26,11 @@ Run every script with `--help`; every writing script supports `--dry-run`.
 - Ids never change. A rename changes `name`, never `id`. Validation fails with
   ID-03 if an id that once existed is gone (`.glossary/ids.lock`).
 - Agents write only `status: Draft`. Approval is a human act.
+  `bg_update --allow-status` works only with the human-only signal
+  `DAMAPL_HUMAN_APPROVAL=1`. Never set that variable, never put it in a
+  command, config, Makefile or CI file, and never ask to have it set for
+  you. `approved_by`, `approved_on` and `approved_version` are refused
+  always.
 - Update by diff. Edit the named fields or sections, never rewrite a term, and
   bump the version. Never use the model to copy or move files; use `cp`/`mv`.
 - Publishing is out of scope; use the `terms.json` / `glossary.csv` exports
@@ -93,8 +98,9 @@ python3 $S/bg_validate.py --repo G --strict && python3 $S/bg_site.py --repo G
 
 A patch op names an `id` and any of `set`, `add`, `remove`, `definition`,
 `sections`, `level`. The tool edits only those lines, shows a unified diff,
-and bumps `version`, `version_date` and `changed_by`. Setting `id`, `created`
-or `created_by` is refused. An Approved term edited at level a or b returns to
+and bumps `version`, `version_date` and `changed_by`. Any `set`, `add` or
+`remove` of `id`, `created`, `created_by`, the bump fields or the approval
+fields is refused, and `status` changes only through `set`. An Approved term edited at level a or b returns to
 Under Review when the profile enables `approval_reset`.
 
 ## Outputs (all derived, in `generated/`)
