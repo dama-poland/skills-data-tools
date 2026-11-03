@@ -4,6 +4,8 @@
 Sources come from --source kind:path (repeatable), from `sources:` in
 glossary.yaml, or interactively with --ask. Output is a ranked candidate
 list in .glossary/candidates.yaml; nothing in terms/ is touched.
+Each candidate carries the highest confidentiality of all its sources
+(a source without one counts as internal).
 
   bg_discover.py --repo G --source obsidian:~/vault --source csv:t.csv
   bg_discover.py --repo G --ask
@@ -17,7 +19,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bg_adapters import ADAPTERS, KIND_HELP, detect_kind, run_adapter
 from bg_core import (dump_yaml, load_config, load_terms, need_repo, slugify,
-                     common_args, write_text, as_list)
+                     common_args, write_text, as_list,
+                     highest_classification, source_ref_of)
 
 JUNK = re.compile(r'(?i)^(index|home|readme|todo|untitled|inbox|template|'
                   r'daily|\d{4}-\d{2}-\d{2}|new note)\b')
@@ -97,7 +100,8 @@ def main():
     m = merged.setdefault(cid, {
       'id': cid, 'name': name, 'definition': '', 'aliases': [],
       'type_hint': c['type_hint'], 'links': [], 'tags': [],
-      'bullets': [], 'sources': [], 'name_pl': '', 'definition_pl': ''})
+      'bullets': [], 'sources': [], 'name_pl': '', 'definition_pl': '',
+      'confidentiality': None})
     if len(c['definition']) > len(m['definition']) and len(
         c['definition']) < 600:
       m['definition'] = c['definition']
@@ -107,7 +111,10 @@ def main():
         else (m[k] or as_list(c.get(k)))
     for k in ('name_pl', 'definition_pl'):
       m[k] = m[k] or c.get(k, '')
-    ref = '%s:%s' % (c['source'], c['source_ref'])
+    seen = [m['confidentiality']] if m['confidentiality'] else []
+    m['confidentiality'] = highest_classification(
+      seen + [c.get('confidentiality')])
+    ref = source_ref_of(c)
     if ref not in m['sources']:
       m['sources'].append(ref)
   cands = [m for m in merged.values()

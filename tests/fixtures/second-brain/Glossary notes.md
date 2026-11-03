@@ -1,3 +1,6 @@
+---
+confidentiality: public
+---
 # Glossary notes
 
 - **Net Promoter Score**: A survey metric that asks how likely customers are to recommend the company, scored from -100 to 100.

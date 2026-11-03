@@ -22,6 +22,10 @@ CONFIG_NAME = 'glossary.yaml'
 FM_RE = re.compile(r'\A---\n(.*?)\n---\n?(.*)\Z', re.S)
 SLUG_RE = re.compile(r'^[a-z0-9]+(-[a-z0-9]+)*$')
 REL_KEYS = ('is_a', 'has_a', 'values', 'realized_by', 'implemented_by')
+# Lowest to highest. A source without a classification counts as
+# UNCLASSIFIED; an unknown value counts as the highest (fail-safe).
+CLASSIFICATIONS = ('public', 'internal', 'restricted')
+UNCLASSIFIED = 'internal'
 
 
 def today():
@@ -32,6 +36,28 @@ def slugify(text):
   s = re.sub(r'\(.*?\)', ' ', text.lower())
   s = re.sub(r'[^a-z0-9]+', '-', s).strip('-')
   return s
+
+
+def normalize_classification(value):
+  """Map a confidentiality value to one of CLASSIFICATIONS."""
+  if value is None or str(value).strip() == '':
+    return UNCLASSIFIED
+  v = str(value).strip().lower()
+  return v if v in CLASSIFICATIONS else CLASSIFICATIONS[-1]
+
+
+def highest_classification(values):
+  """Highest classification among `values` (UNCLASSIFIED when empty)."""
+  ranks = [CLASSIFICATIONS.index(normalize_classification(v))
+           for v in values]
+  return CLASSIFICATIONS[max(ranks)] if ranks else UNCLASSIFIED
+
+
+def source_ref_of(cand):
+  """Stable reference of a raw candidate: its source_id, else kind:path."""
+  if cand.get('source_id'):
+    return str(cand['source_id'])
+  return '%s:%s' % (cand['source'], cand['source_ref'])
 
 
 def section_key(title):

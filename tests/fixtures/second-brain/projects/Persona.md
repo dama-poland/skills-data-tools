@@ -1,4 +1,5 @@
 ---
+confidentiality: public
 type: Role
 ---
 # Persona

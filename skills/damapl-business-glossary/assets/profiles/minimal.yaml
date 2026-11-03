@@ -15,6 +15,8 @@ template:
   alternative_names: []
   status: Draft
   source_origin: '{source_origin}'
+  confidentiality: '{confidentiality}'
+  source_refs: []
   created: '{today}'
   related_terms: []
   relations: {}

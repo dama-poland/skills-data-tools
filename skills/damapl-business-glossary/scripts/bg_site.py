@@ -4,6 +4,9 @@ type/category views, per-term pages), terms.json, glossary.csv, a-z.md.
 
 D3 is inlined from assets/vendor, so index.html opens with no server and
 no network. Output goes to <repo>/generated/ (gitignored by default).
+Only terms with `confidentiality: public` reach the site, terms.json,
+glossary.csv and a-z.md; a missing value counts as not public. Excluded
+terms are listed on stdout, and links to them are dropped from the views.
 
   bg_site.py --repo G [--out DIR] [--dry-run]
 """
@@ -17,11 +20,28 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bg_core import (SKILL_DIR, as_list, common_args, need_repo,
-                     rel_targets, write_text)
+                     normalize_classification, rel_targets, write_text)
 from bg_validate import run
 
 OWNER_KEYS = ('created_by', 'business_owner', 'technical_owner',
               'data_steward')
+
+
+def is_public(t):
+  return normalize_classification(t['fm'].get('confidentiality')) == 'public'
+
+
+def drop_hidden(x, hidden):
+  """Remove links to excluded terms from one exported term."""
+  for k in ('related_terms', 'homonym_of'):
+    x[k] = [v for v in x[k] if v not in hidden]
+  x['relations'] = {k: [v for v in vs if v not in hidden]
+                    for k, vs in x['relations'].items()}
+  x['relations'] = {k: vs for k, vs in x['relations'].items() if vs}
+  for k in ('boundary_term_ref', 'successor_term'):
+    if x[k] in hidden:
+      x[k] = None
+  return x
 
 
 def term_json(t, tr, issues):
@@ -66,11 +86,18 @@ def main():
     if v['level'] == 'MUST':
       issues.setdefault(v['term'], []).append(
         '%s: %s' % (v['rule'], v['message']))
-  items = []
+  items, excluded = [], []
   for t in terms:
     i = t['fm'].get('id')
-    if i and t['fm'].get('status') != 'Archived':
-      items.append(term_json(t, tiers.get(i, 'Below'), issues.get(i, [])))
+    if not i or t['fm'].get('status') == 'Archived':
+      continue
+    if not is_public(t):
+      excluded.append((i, t['fm'].get('confidentiality') or
+                       'no confidentiality'))
+      continue
+    items.append(term_json(t, tiers.get(i, 'Below'), issues.get(i, [])))
+  hidden = {i for i, _ in excluded}
+  items = [drop_hidden(x, hidden) for x in items]
   items.sort(key=lambda x: x['name'].lower())
   data = {
     'title': cfg.get('name', 'Business Glossary'),
@@ -116,6 +143,10 @@ def main():
                              os.path.join(out, rel), len(text) // 1024))
     write_text(os.path.join(out, rel), text, a.dry_run)
   print('%d terms' % len(items))
+  if excluded:
+    print('excluded %d term(s) that are not public:' % len(excluded))
+    for i, conf in excluded:
+      print('  %s (%s)' % (i, conf))
 
 
 if __name__ == '__main__':

@@ -6,6 +6,9 @@ acronyms: []
 alternative_names: []
 status: Approved
 source_origin: CTMS-ARCH-v1
+confidentiality: public
+source_refs:
+- CTMS-ARCH-v1
 created: '2026-10-24'
 related_terms: []
 relations: {}

@@ -23,6 +23,10 @@ immutable; `version`, `version_date`, `changed_by` belong to the bump;
 only and always refused. `status` changes only through `set`, and only to
 the profile's agent_status unless --allow-status is given together with
 the human-only signal DAMAPL_HUMAN_APPROVAL=1. An agent never sets it.
+`confidentiality` changes only through `set` and never goes down
+(public < internal < restricted); `source_refs` entries are never removed.
+--from-sources proposals raise confidentiality and add the source ref when
+a differing source is classified higher than the term.
 
   bg_update.py --repo G --patch p.yaml --dry-run
 """
@@ -33,11 +37,12 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bg_adapters import run_adapter
-from bg_core import (as_list, bump_text, common_args, default_author,
-                     dump_yaml, load_config, load_profile, load_terms,
-                     load_yaml, need_repo, read_term, set_definition,
-                     set_fm_field, set_section, slugify, unified,
-                     write_text)
+from bg_core import (CLASSIFICATIONS, as_list, bump_text, common_args,
+                     default_author, dump_yaml, highest_classification,
+                     load_config, load_profile, load_terms, load_yaml,
+                     need_repo, normalize_classification, read_term,
+                     set_definition, set_fm_field, set_section, slugify,
+                     source_ref_of, unified, write_text)
 
 IMMUTABLE = ('id', 'created_by', 'created')
 BUMP_FIELDS = ('version', 'version_date', 'changed_by')
@@ -45,11 +50,34 @@ APPROVAL_FIELDS = ('approved_by', 'approved_on', 'approved_version')
 HUMAN_APPROVAL_ENV = 'DAMAPL_HUMAN_APPROVAL'
 
 
-def check_guards(op, prof, allow_status):
+def check_classification(kind, k, v, fm):
+  """confidentiality never goes down; source_refs entries never go away."""
+  if k == 'confidentiality':
+    if kind != 'set':
+      raise ValueError('confidentiality is a single value; `%s` on it is '
+                       'refused (use set)' % kind)
+    if str(v).strip().lower() not in CLASSIFICATIONS:
+      raise ValueError('confidentiality must be one of %s'
+                       % ', '.join(CLASSIFICATIONS))
+    cur = normalize_classification(fm.get('confidentiality'))
+    if CLASSIFICATIONS.index(normalize_classification(v)) < \
+        CLASSIFICATIONS.index(cur):
+      raise ValueError('confidentiality %s -> %s is a downgrade; only a '
+                       'dated human decision can declassify' % (cur, v))
+  if k == 'source_refs':
+    if kind == 'remove':
+      raise ValueError('source_refs entries are never removed')
+    if kind == 'set' and set(map(str, as_list(fm.get('source_refs')))) - \
+        set(map(str, as_list(v))):
+      raise ValueError('source_refs entries are never removed (use add)')
+
+
+def check_guards(op, fm, prof, allow_status):
   """Refuse protected fields in every field op (set, add, remove)."""
   agent_status = prof.get('agent_status', 'Draft')
   for kind in ('set', 'add', 'remove'):
     for k, v in (op.get(kind) or {}).items():
+      check_classification(kind, k, v, fm)
       if k in IMMUTABLE:
         raise ValueError('`%s` is immutable (ids never change)' % k)
       if k in BUMP_FIELDS:
@@ -66,8 +94,8 @@ def check_guards(op, prof, allow_status):
 
 def apply_op(t, op, prof, author, allow_status):
   text = t['text']
-  check_guards(op, prof, allow_status)
   fm = t['fm']
+  check_guards(op, fm, prof, allow_status)
   for k, v in (op.get('set') or {}).items():
     if fm.get(k) != v:
       text = set_fm_field(text, k, v)
@@ -101,9 +129,17 @@ def propose(repo, cfg, terms):
       if not t or not c['definition'] or len(c['definition']) > 600:
         continue
       if c['definition'].strip() != t['definition'].strip():
-        ops.append({'id': t['fm']['id'], 'definition': c['definition'],
-                    'reason': 'source %s:%s differs' % (
-                      c['source'], c['source_ref'])})
+        op = {'id': t['fm']['id'], 'definition': c['definition'],
+              'reason': 'source %s:%s differs' % (
+                c['source'], c['source_ref'])}
+        cur = normalize_classification(t['fm'].get('confidentiality'))
+        conf = highest_classification([cur, c.get('confidentiality')])
+        if conf != cur:
+          op['set'] = {'confidentiality': conf}
+        ref = source_ref_of(c)
+        if ref not in map(str, as_list(t['fm'].get('source_refs'))):
+          op['add'] = {'source_refs': [ref]}
+        ops.append(op)
   return ops
 
 

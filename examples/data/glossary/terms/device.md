@@ -6,6 +6,10 @@ acronyms: []
 alternative_names: []
 status: Under Review
 source_origin: CTMS-ARCH-v1, EDC-ARCH-v1
+confidentiality: public
+source_refs:
+- CTMS-ARCH-v1
+- EDC-ARCH-v1
 created: '2026-10-24'
 related_terms: []
 relations: {}

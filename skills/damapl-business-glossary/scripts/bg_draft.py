@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Draft term files from accepted candidates. Create-only: an existing
 term is never overwritten (use bg_update.py for that). Status is always
-the profile's agent_status (Draft).
+the profile's agent_status (Draft). Every term gets the candidate's
+confidentiality and all of its sources in `source_refs`.
 
   bg_draft.py --repo G --top 20
   bg_draft.py --repo G --ids candidate,job-offer
@@ -15,9 +16,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bg_core import (SLUG_RE, as_list, common_args, default_author,
-                     dump_yaml, load_config, load_profile, load_terms,
-                     load_yaml, need_repo, split_sentences, today,
-                     write_text)
+                     dump_yaml, highest_classification, load_config,
+                     load_profile, load_terms, load_yaml, need_repo,
+                     split_sentences, today, write_text)
 
 WIKI = re.compile(r'\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]*))?\]\]')
 
@@ -27,15 +28,20 @@ def unwiki(text):
 
 
 def render(prof, cfg, cand, author):
+  sources = [str(x) for x in as_list(cand.get('sources'))]
+  conf = highest_classification([cand.get('confidentiality')])
   opts = {'id': cand['id'], 'name': cand['name'],
           'type': cand.get('type_hint') or cfg.get('default_type', 'Concept'),
-          'source_origin': ', '.join(cand.get('sources', [])[:3]) or 'n/a',
+          'source_origin': ', '.join(sources) or 'n/a',
+          'confidentiality': conf,
           'author': author, 'today': today()}
   if opts['type'] not in prof.get('types', [opts['type']]):
     opts['type'] = cfg.get('default_type', 'Concept')
   fm = {}
   for k, v in (prof.get('template') or {}).items():
     fm[k] = v.format(**opts) if isinstance(v, str) else v
+  fm['confidentiality'] = conf
+  fm['source_refs'] = sources
   if cand.get('aliases'):
     fm['alternative_names'] = cand['aliases']
   if 'pl' in cfg.get('languages', []):

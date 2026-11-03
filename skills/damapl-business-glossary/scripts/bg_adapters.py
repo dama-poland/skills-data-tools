@@ -2,7 +2,8 @@
 
 Every adapter yields dicts:
   name, definition, aliases[], type_hint, links[], tags[], bullets[],
-  source (adapter kind), source_ref (path or url), text (note body)
+  source (adapter kind), source_ref (path or url), text (note body),
+  confidentiality (frontmatter value or None), source_id (or None)
 Add an adapter by writing a function and registering it in ADAPTERS.
 The `folder` adapter is the fallback for any unknown kind.
 """
@@ -108,7 +109,8 @@ def note_candidate(path, text, kind, root=None):
     'links': sorted({x.strip() for x in WIKILINK.findall(body)}),
     'tags': sorted(set(tags)), 'bullets': bullets_of(body),
     'source_ref': os.path.relpath(path, root) if root else path,
-    'text': body,
+    'text': body, 'confidentiality': fm.get('confidentiality'),
+    'source_id': fm.get('source_id'),
   }
 
 
@@ -129,22 +131,28 @@ def a_obsidian(path, opts):
 
 def inline_defs(rel, text, kind, force):
   """`**Term**: definition` lines and glossary table rows inside a note.
-  Plain `Term: text` lines only count in glossary-like notes (`force`)."""
+  Plain `Term: text` lines only count in glossary-like notes (`force`).
+  Each candidate inherits the note's confidentiality and source_id."""
+  fm = _split_fm(text)[0]
+  meta = {'confidentiality': fm.get('confidentiality'),
+          'source_id': fm.get('source_id')}
   for ln in text.split('\n'):
     m = DEF_LINE.match(ln)
     if m and (force or '**' in ln):
-      yield {'name': m.group(1).strip(), 'definition': m.group(2).strip(),
-             'source': kind, 'aliases': [], 'links': [], 'tags': [],
-             'bullets': [], 'type_hint': guess_type(m.group(2)),
-             'source_ref': rel, 'text': ''}
+      yield dict(meta, **{
+        'name': m.group(1).strip(), 'definition': m.group(2).strip(),
+        'source': kind, 'aliases': [], 'links': [], 'tags': [],
+        'bullets': [], 'type_hint': guess_type(m.group(2)),
+        'source_ref': rel, 'text': ''})
     row = [x.strip() for x in ln.strip().strip('|').split('|')]
     if ln.strip().startswith('|') and len(row) >= 2 and force and \
         row[0] and not set(row[0]) <= set('-: ') and \
         row[0].lower() not in ('term', 'name'):
-      yield {'name': row[0].strip('*_ '), 'definition': row[1],
-             'source': kind, 'aliases': [], 'links': [], 'tags': [],
-             'bullets': [], 'type_hint': guess_type(row[1]),
-             'source_ref': rel, 'text': ''}
+      yield dict(meta, **{
+        'name': row[0].strip('*_ '), 'definition': row[1],
+        'source': kind, 'aliases': [], 'links': [], 'tags': [],
+        'bullets': [], 'type_hint': guess_type(row[1]),
+        'source_ref': rel, 'text': ''})
 
 
 def is_glossary_note(rel, name):

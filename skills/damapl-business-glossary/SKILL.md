@@ -33,6 +33,11 @@ Run every script with `--help`; every writing script supports `--dry-run`.
   always.
 - Update by diff. Edit the named fields or sections, never rewrite a term, and
   bump the version. Never use the model to copy or move files; use `cp`/`mv`.
+- A term carries the highest `confidentiality` of its sources (a source
+  without one counts as `internal`) and lists every source in
+  `source_refs`. Never lower `confidentiality` or remove a `source_refs`
+  entry; `bg_update` refuses both. Declassification is a dated human
+  decision.
 - Publishing is out of scope; use the `terms.json` / `glossary.csv` exports
   with your own publishing tool.
 - Review prose that leaves the machine (plain wording, no invented facts)
@@ -111,6 +116,10 @@ Under Review when the profile enables `approval_reset`.
 | `terms.json`, `glossary.csv` | flat exports for other tools |
 | `a-z.md` | Markdown index linking to the term files |
 | `validation.json` | violations and tiers from the last build |
+
+Only terms with `confidentiality: public` reach the site, `terms.json`,
+`glossary.csv` and `a-z.md`. A term without the field counts as not public.
+`bg_site` prints every excluded term and drops links to it from the views.
 
 Open `generated/site/index.html` with a double click. No server, no network.
 

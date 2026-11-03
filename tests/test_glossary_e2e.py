@@ -144,7 +144,7 @@ class SecondBrain(unittest.TestCase):
       fh.write(text)
 
   def test_08_site_offline_bundle(self):
-    run('bg_site.py', '--repo', self.repo)
+    p = run('bg_site.py', '--repo', self.repo)
     html = rd(os.path.join(
       self.repo, 'generated', 'site', 'index.html'))
     self.assertNotIn('http://cdn', html)
@@ -152,7 +152,13 @@ class SecondBrain(unittest.TestCase):
     self.assertIn('d3js.org', html)       # vendored library is inlined
     data = json.loads(rd(os.path.join(
       self.repo, 'generated', 'terms.json')))
-    self.assertEqual(len(data['terms']), len(self.terms()))
+    # The CSV source has no classification, so its terms are internal
+    # (customer-journey inherits it from the merge) and stay out.
+    hidden = ['customer-journey', 'onboarding']
+    self.assertEqual(sorted(x['id'] + '.md' for x in data['terms']),
+                     [n for n in self.terms() if n[:-3] not in hidden])
+    for i in hidden:
+      self.assertIn('  %s (internal)' % i, p.stdout)
     self.assertTrue(os.path.isfile(os.path.join(
       self.repo, 'generated', 'a-z.md')))
 

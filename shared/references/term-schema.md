@@ -48,7 +48,9 @@ Rationale, usage or scope. Not a longer restatement of the definition.
 | `alternative_names` | synonyms in active use | none |
 | `status` | Draft, Under Review, Approved, Deprecated, Archived | LIFE-01; agents write Draft |
 | `term_source` | INTERNAL or EXTERNAL | SRC-01, SRC-02 |
-| `source_origin` | where the definition came from | OWN-05 |
+| `source_origin` | where the definition came from, every source, comma separated | OWN-05 |
+| `source_refs` | list of every source the term was drawn from: the note `source_id`, else `kind:path` | entries are never removed by `bg_update` |
+| `confidentiality` | `public`, `internal` or `restricted`: the highest classification of all sources; a source with none counts as `internal`, an unknown value as `restricted` | never lowered by an agent; only `public` terms reach the site and exports |
 | `created_by`, `created` | set once, never edited | OWN-04 |
 | `business_owner`, `technical_owner`, `data_steward` | one named person each | OWN-01, 02, 03 (profile option `owners`) |
 | `owner_confirmed` | true only after the owners accepted the role | Silver tier |

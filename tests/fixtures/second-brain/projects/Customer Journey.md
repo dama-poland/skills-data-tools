@@ -1,4 +1,5 @@
 ---
+confidentiality: public
 aliases: [Buyer Journey]
 tags: [marketing]
 ---

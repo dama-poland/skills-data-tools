@@ -6,6 +6,9 @@ acronyms: []
 alternative_names: []
 status: Approved
 source_origin: SUPPLY-ARCH-v2
+confidentiality: public
+source_refs:
+- SUPPLY-ARCH-v2
 created: '2026-10-24'
 related_terms: []
 relations: {}
