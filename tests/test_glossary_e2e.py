@@ -94,7 +94,8 @@ class SecondBrain(unittest.TestCase):
       self.assertTrue(t['definition'])
 
   def test_03_validate_clean_of_must(self):
-    p = run('bg_validate.py', '--repo', self.repo, '--strict')
+    p = run('bg_validate.py', '--repo', self.repo, '--strict',
+            '--level', 'MUST')
     self.assertIn('0 MUST', p.stdout)
 
   def test_04_one_way_related(self):

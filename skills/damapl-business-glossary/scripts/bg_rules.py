@@ -461,19 +461,26 @@ def _when(t, w):
 
 
 def tiers(terms, violations, profile):
-  """Return {term_id: tier name or 'Below'} per the profile's tier list."""
+  """Return {term_id: tier name or 'Below'} per the profile's tier list.
+  A term with a DRAFT-TODO placeholder can reach only the lowest tier; a
+  term whose frontmatter cannot be read (YAML-01) stays Below."""
   spec = profile.get('tiers') or []
-  failing = {}
+  failing, todo = {}, set()
   for v in violations:
     if v['level'] == 'MUST':
       failing.setdefault(v['term'], set()).add(v['rule'])
+    if v['rule'] == 'DRAFT-TODO':
+      todo.add(v['term'])
   res = {}
   for t in terms:
     me, got = t['fm'].get('id'), 'Below'
-    for tier in spec:  # highest first
-      if _tier_ok(t, tier, spec, failing.get(me, set())):
-        got = tier['name']
-        break
+    if 'YAML-01' not in failing.get(me, ()):
+      for i, tier in enumerate(spec):  # highest first
+        if me in todo and i < len(spec) - 1:
+          continue
+        if _tier_ok(t, tier, spec, failing.get(me, set())):
+          got = tier['name']
+          break
     res[me] = got
   return res
 

@@ -87,7 +87,12 @@ python3 $S/bg_site.py --repo ./glossary                # generated/site/index.ht
 4. Complete each draft: a 1-2 sentence definition, Description Details,
    What it is, What it is not. Do it with `bg_update`, not by retyping files.
 5. `bg_validate` reports MUST and SHOULD findings and the tier (Bronze, Silver,
-   Gold) of every term when the profile defines tiers. `--lock` records the ids that must never disappear.
+   Gold) of every term when the profile defines tiers. A term that still has
+   a `TODO` placeholder (`DRAFT-TODO`) stays at the lowest tier; a term whose
+   YAML cannot be read is a MUST finding (`YAML-01`) and stays below every
+   tier. `--strict` exits 1 on any finding shown, MUST or SHOULD; add
+   `--level MUST` to fail on MUST only. `--lock` records the ids that must
+   never disappear.
 6. `bg_site` builds the viewer and the CSV, JSON and A-Z outputs.
 
 ## Workflow: update

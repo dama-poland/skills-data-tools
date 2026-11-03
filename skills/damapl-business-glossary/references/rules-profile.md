@@ -105,7 +105,9 @@ Evaluated top down, first match wins.
 | Gold | Silver, `status: Approved`, no MUST finding, reviewed within 12 months |
 
 Below Bronze is reported as `Below`. The `minimal` profile drops the owner
-requirements.
+requirements. Two findings cap a term whatever the profile says: a `TODO`
+placeholder (`DRAFT-TODO`, SHOULD) keeps it at the lowest tier, and
+unreadable YAML (`YAML-01`, MUST) keeps it `Below`.
 
 ## Writing your own profile
 
