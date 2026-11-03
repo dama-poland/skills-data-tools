@@ -8,7 +8,8 @@ Checks:
   - every skills/*/SKILL.md has frontmatter with `name` and `description`;
   - `name` equals the folder name, starts with `damapl-`, is lowercase kebab-case, at most 64 characters;
   - a skill folder holds only SKILL.md, references/, templates/, scripts/ and assets/;
-  - SKILL.md and the scripts use no `../`, no absolute or home paths, no `${CLAUDE_PLUGIN_ROOT}`
+  - SKILL.md, the scripts and every file under references/, templates/ and
+    assets/ use no `../`, no absolute or home paths, no `${CLAUDE_PLUGIN_ROOT}`
     and no repo-root folder (examples/, shared/, docs/, tests/, second-brain/,
     data-architecture-design/, business-glossary/, skills/);
   - scripts do not climb above their skill folder (`parents[2]` or higher);
@@ -43,8 +44,15 @@ FORBIDDEN = {
 }
 # Text that looks like a path but is not one the skill reads:
 #  - bg_site.py writes a Markdown link from generated/a-z.md to terms/ (output text);
-#  - bg_discover.py documents a user-supplied vault path in its usage example.
-ALLOWED_LINES = (re.compile(r"\]\(\.\./terms/"), re.compile(r"--source obsidian:~/vault "))
+#  - bg_discover.py documents a user-supplied vault path in its usage example;
+#  - source-adapters.md tells a maintainer where to add a test in the source
+#    repository; the skill never reads that folder.
+ALLOWED_LINES = (
+    re.compile(r"\]\(\.\./terms/"),
+    re.compile(r"--source obsidian:~/vault "),
+    re.compile(r"`tests/test_glossary_e2e\.py` of the source repository"),
+)
+SKIPPED_DIRS = {"__pycache__"}
 SKILL_PATH = re.compile(r"(?<![\w.-])((?:references|templates|scripts|assets)/[\w.-]+(?:/[\w.-]+)*)")
 SECRET_KEY = re.compile(r"token|secret|password|key", re.I)
 
@@ -67,6 +75,22 @@ def forbidden_hits(label: str, text: str) -> list[str]:
         for kind, pattern in FORBIDDEN.items():
             if pattern.search(line):
                 found.append(f"{label}:{number}: {kind}")
+    return found
+
+
+def folder_hits(folder: Path, root: Path) -> list[str]:
+    """Every file in the skill except SKILL.md: scripts get the same path rules
+    as the prose, and references, templates and assets are read by the agent, so
+    they must not point outside the folder either. Binary files are skipped."""
+    found = []
+    for path in sorted(p for p in folder.rglob("*") if p.is_file()):
+        if path.name == "SKILL.md" or set(path.relative_to(folder).parts) & SKIPPED_DIRS:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        found += forbidden_hits(path.relative_to(root).as_posix(), text)
     return found
 
 
@@ -94,8 +118,7 @@ def lint_skill(folder: Path, root: Path) -> list[str]:
         if entry not in SKILL_ENTRIES:
             found.append(f"{rel}/{entry}: not allowed in a skill folder")
     found += forbidden_hits(f"{rel}/SKILL.md", text)
-    for script in sorted((folder / "scripts").glob("*.py")):
-        found += forbidden_hits(script.relative_to(root).as_posix(), script.read_text(encoding="utf-8"))
+    found += folder_hits(folder, root)
     mentioned = {m.group(1).rstrip(".,:;)") for m in SKILL_PATH.finditer(text)}
     for path in sorted(mentioned):
         if not (folder / path).exists():

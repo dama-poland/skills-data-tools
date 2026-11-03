@@ -55,6 +55,20 @@ class LintTest(unittest.TestCase):
         found = "\n".join(self.lint(script="from pathlib import Path\nR = Path(__file__).resolve().parents[2]\n"))
         self.assertIn("climbs above the skill folder", found)
 
+    def test_reference_template_and_asset_paths_are_rejected(self):
+        for folder, body, kind in (
+            ("references", "Read `../shared/x.md`.", "parent folder"),
+            ("templates", "Read /Users/someone/x.md.", "absolute path"),
+            ("assets", "Read ~/x.md.", "home path"),
+        ):
+            with tempfile.TemporaryDirectory() as tmp:
+                repo = make_repo(Path(tmp))
+                target = repo / "skills" / "damapl-demo" / folder
+                target.mkdir()
+                (target / "note.md").write_text(body + "\n", encoding="utf-8")
+                found = "\n".join(lint_skills.lint(repo))
+                self.assertIn(kind, found, folder)
+
     def test_missing_mentioned_file_is_rejected(self):
         found = "\n".join(self.lint(body="Read `references/nope.md`."))
         self.assertIn("references/nope.md", found)

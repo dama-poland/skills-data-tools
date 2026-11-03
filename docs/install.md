@@ -41,4 +41,4 @@ A project may keep `.ai/damapl.config.json` in its root with `vault`, `glossary`
 
 ## Lint rules
 
-`scripts/lint.sh` fails when a `SKILL.md` lacks `name` or `description`; the name differs from the folder or lacks the `damapl-` prefix; SKILL.md or a script contains `../`, an absolute path, `~/`, `${CLAUDE_PLUGIN_ROOT}` or a repo-root folder path; or a SKILL.md names a `references/`, `templates/`, `scripts/` or `assets/` file that does not exist in the skill.
+`scripts/lint.sh` fails when a `SKILL.md` lacks `name` or `description`; the name differs from the folder or lacks the `damapl-` prefix; `SKILL.md`, a script or any file in `references/`, `templates/` or `assets/` contains `../`, an absolute path, `~/`, `${CLAUDE_PLUGIN_ROOT}` or a repo-root folder path; or a SKILL.md names a `references/`, `templates/`, `scripts/` or `assets/` file that does not exist in the skill.
