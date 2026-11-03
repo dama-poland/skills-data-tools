@@ -99,6 +99,42 @@ class GateTest(unittest.TestCase):
             self.assertEqual(result.returncode, 1)
             self.assertIn("missing part: Sources", result.stdout)
 
+    def _demo_with_source(self, tmp, frontmatter):
+        data = Path(tmp) / "data"
+        shutil.copytree(DATA, data)
+        (data / "sources").mkdir()
+        (data / "sources" / "raw-model.md").write_text(
+            "---\n" + frontmatter + "---\n\n# Raw model\n")
+        return data
+
+    def test_gate_1_checks_notes_in_sources_folder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data = self._demo_with_source(tmp, 'title: "Raw model"\nretrieved: "2026-10-24"\n')
+            result = gate(1, "--data", str(data))
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("sources/raw-model.md: no owner", result.stdout)
+            self.assertIn("sources/raw-model.md: confidentiality is not one of", result.stdout)
+
+    def test_gate_1_passes_with_complete_note_in_sources_folder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data = self._demo_with_source(
+                tmp, 'title: "Raw model"\nowner: "Synthetic demo maintainers"\n'
+                     'retrieved: "2026-10-24"\nconfidentiality: "public"\n')
+            self.assertEqual(gate(1, "--data", str(data)).returncode, 0)
+
+    def test_gate_1_knows_source_ids_declared_in_sources_folder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data = self._demo_with_source(
+                tmp, 'title: "Raw model"\nsource_id: "RAW-MODEL-v1"\n'
+                     'owner: "Synthetic demo maintainers"\n'
+                     'retrieved: "2026-10-24"\nconfidentiality: "public"\n')
+            answer = Path(tmp) / "answer.md"
+            answer.write_text(ANSWER.read_text().replace(
+                "## Confidence", "- `sources/raw-model.md`, `RAW-MODEL-v1`, retrieved 2026-10-24.\n\n## Confidence").replace(
+                "retrieved 2026-10-24.\n\n- `sources/raw-model.md`", "retrieved 2026-10-24.\n- `sources/raw-model.md`"))
+            result = gate(1, "--data", str(data), "--answers", str(answer))
+            self.assertEqual(result.returncode, 0, result.stdout)
+
     def test_gate_3_passes_when_terms_are_approved(self):
         with tempfile.TemporaryDirectory() as tmp:
             data = Path(tmp) / "data"

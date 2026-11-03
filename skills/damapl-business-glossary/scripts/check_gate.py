@@ -9,8 +9,8 @@ whose helper scripts sit in its own folder: gate 2 needs bg_validate.py (skill
 damapl-business-glossary), gate 3 needs map_build.py and gaps_build.py (skill
 damapl-model-change). A gate whose scripts are missing exits with code 2.
 
-Gate 1  second brain: sources have owner, date and classification; sample answers
-        follow the answer contract.
+Gate 1  second brain: notes in sources/ and source notes in systems/ have owner, date
+        and classification; sample answers follow the answer contract.
 Gate 2  glossary: no MUST findings; every term used by an approved concept link
         reaches at least the lowest tier of the active profile.
 Gate 3  architecture: every approved concept link points to an Approved term; map
@@ -92,8 +92,10 @@ def _is_date(value) -> bool:
 
 
 def source_notes(systems: Path, data: Path) -> list[tuple[str, dict]]:
-    """Source notes (type source in systems) plus every derived note and decision."""
+    """Every note in sources/, source notes (type source) in systems, derived notes and decisions."""
     notes: list[tuple[str, dict]] = []
+    for path in sorted((data / "sources").glob("*.md")):
+        notes.append((f"sources/{path.name}", parse_frontmatter(path)))
     for path in sorted(systems.glob("*.md")):
         fm = parse_frontmatter(path)
         if fm.get("type") == "source":
@@ -126,10 +128,10 @@ def gate_1(args) -> Report:
         problems.append("no source notes found")
     report.add(f"{len(notes)} source notes have owner, date and classification", problems)
 
-    systems = load_systems(args.systems)
-    known = {str(n["source_id"]) for n in systems if n.get("source_id")}
+    declared = load_systems(args.systems) + load_systems(args.data / "sources")
+    known = {str(n["source_id"]) for n in declared if n.get("source_id")}
     classes = {str(n["source_id"]): str(n.get("confidentiality") or "public")
-               for n in systems if n.get("source_id")}
+               for n in declared if n.get("source_id")}
     if not args.answers.is_file():
         report.add(f"sample answer follows the answer contract ({args.answers.name})",
                    [f"file not found: {args.answers}"])

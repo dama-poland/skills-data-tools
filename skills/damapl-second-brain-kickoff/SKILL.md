@@ -58,6 +58,6 @@ Ask one group at a time and wait for the answers. Discovery questions may be ope
 
 ## Gate 1 and freshness
 
-- Program check, run from this skill folder: `python3 scripts/check_gate.py 1 --data DIR --answers FILE`. `DIR` holds `systems/`, `notes/`, `decisions/` and `glossary/`. Take the paths from `.ai/damapl.config.json` in the project root if it exists (keys `systems`, `decisions`), otherwise ask the user. The human checklist is `references/gate-1-second-brain.md`.
+- Program check, run from this skill folder: `python3 scripts/check_gate.py 1 --data DIR --answers FILE`. `DIR` holds `sources/`, `systems/`, `notes/`, `decisions/` and `glossary/`. Take the paths from `.ai/damapl.config.json` in the project root if it exists (keys `systems`, `decisions`), otherwise ask the user. The human checklist is `references/gate-1-second-brain.md`.
 - Superseded sources: `python3 scripts/freshness-review.py VAULT` lists notes that cite a superseded source id; `--apply` marks them for review.
 - A passing gate is not a sign-off. Never write `gates/signoff-1.md`; the architect does.

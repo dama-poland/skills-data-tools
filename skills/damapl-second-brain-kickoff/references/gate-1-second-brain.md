@@ -10,7 +10,7 @@ confidentiality: "public"
 
 # Gate 1 checklist: second brain
 
-Run `python3 scripts/check_gate.py 1 --data DIR --answers FILE` from the damapl-second-brain-kickoff skill folder first. It checks that every source has an owner, a date and a classification, and that sample answers follow the answer contract. It cannot judge content. You do that here.
+Run `python3 scripts/check_gate.py 1 --data DIR --answers FILE` from the damapl-second-brain-kickoff skill folder first. It checks that every note in `sources/` and every source note in `systems/` has an owner, a date and a classification, and that sample answers follow the answer contract. It cannot judge content. You do that here.
 
 Sign-off by: the data architect. Record it in `gates/signoff-1.md` yourself.
 

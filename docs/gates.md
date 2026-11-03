@@ -26,7 +26,7 @@ Each gate runs from one skill. `check_gate.py` sits in three skills as an identi
 - Gate 2: `bg_validate` reports no MUST findings for the glossary, using the profile named in its `glossary.yaml`. Every term used by an approved `concepts:` entry reaches at least the lowest tier of that profile.
 - Gate 3: every approved `concepts:` entry points to a glossary term with status `Approved`. `map_build.py` and `gaps_build.py` run without errors (output goes to a temporary folder).
 
-Options: `--data DIR` is required and holds `systems/`, `notes/`, `decisions/` and `glossary/`. `--systems DIR` and `--glossary DIR` override the two sub-folders. Gate 1 also requires `--answers FILE`. There are no defaults: the demo data in this repository is `examples/data`, with the sample answer `examples/expected/act-1-answer.md`. Exit code 0 means all program checks passed, 1 means at least one failed, 2 means the gate could not run.
+Options: `--data DIR` is required and holds `sources/` (optional), `systems/`, `notes/`, `decisions/` and `glossary/`. `--systems DIR` and `--glossary DIR` override the two sub-folders. Gate 1 also requires `--answers FILE`. There are no defaults: the demo data in this repository is `examples/data`, with the sample answer `examples/expected/act-1-answer.md`. Exit code 0 means all program checks passed, 1 means at least one failed, 2 means the gate could not run.
 
 ## The demo fails gate 3 on purpose
 
