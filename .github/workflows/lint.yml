@@ -1,0 +1,82 @@
+# Deterministic checks only. No LLM calls. Network: PyYAML and the pinned skills CLI (install test).
+name: lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: Lint skills
+        run: scripts/lint.sh
+
+      - name: Shared files are identical in every skill
+        run: python scripts/check_shared_copies.py
+
+      - name: Repository validator
+        run: python tests/validate_repo.py
+
+      - name: Unit tests (map, gaps, model diff, gates, smoke checker, scan, lint, shared copies)
+        run: python -m unittest discover -s tests -p 'test_*.py'
+
+      - name: Glossary end-to-end test
+        run: python tests/test_glossary_e2e.py
+
+      - name: Smoke checker self-check
+        run: python tests/check_smoke.py --self-check
+
+      - name: Gate 1 (second brain)
+        run: >
+          python skills/damapl-second-brain-kickoff/scripts/check_gate.py 1
+          --data examples/data --answers examples/expected/act-1-answer.md
+
+      - name: Gate 2 (glossary)
+        run: python skills/damapl-business-glossary/scripts/check_gate.py 2 --data examples/data
+
+      # The synthetic demo fails gate 3 on purpose: `device` is Under Review and
+      # `dose-event` is Draft. A failing gate is a prompt for a human decision, so CI
+      # asserts the expected failure instead of skipping it. If the demo data changes
+      # so that gate 3 passes, update this step and docs/gates.md together.
+      - name: Gate 3 (architecture) fails on the demo as designed
+        shell: bash
+        run: |
+          set +e
+          python skills/damapl-model-change/scripts/check_gate.py 3 --data examples/data | tee "$RUNNER_TEMP/gate3.txt"
+          code=${PIPESTATUS[0]}
+          set -e
+          test "$code" -eq 1
+          grep -q "device in ctms" "$RUNNER_TEMP/gate3.txt"
+          grep -q "dose-event in edc" "$RUNNER_TEMP/gate3.txt"
+          grep -q "1 failed" "$RUNNER_TEMP/gate3.txt"
+
+      - name: Scan for emails, tokens and blocklisted names
+        env:
+          # Private names (employers, clients), comma-separated, kept out of the repo.
+          SCAN_BLOCKLIST: ${{ secrets.SCAN_BLOCKLIST }}
+        run: python tests/scan_repo.py
+
+      - name: Install test (pinned skills CLI, installed copies)
+        run: PYTHON=python scripts/test_install.sh

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>__TITLE__</title>
+<style>
+:root{--bg:#fafafa;--fg:#1d2330;--mut:#6b7385;--line:#dde1ea;--acc:#2f5fd0;--card:#fff}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,sans-serif;color:var(--fg);background:var(--bg)}
+header{display:flex;gap:16px;align-items:center;padding:10px 20px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+header h1{font-size:17px;margin:0 8px 0 0}nav a{margin-right:12px;color:var(--mut);text-decoration:none;font-weight:600}
+nav a.on{color:var(--acc)}#q{flex:1;min-width:200px;padding:7px 10px;border:1px solid var(--line);border-radius:6px;font-size:14px}
+main{max-width:1100px;margin:0 auto;padding:20px}.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:8px 0}
+.card a.t{font-weight:600;color:var(--acc);text-decoration:none;font-size:16px}.mut{color:var(--mut);font-size:13px}
+.pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;margin-right:4px;border:1px solid var(--line);background:#f1f3f8}
+.tier-Gold{background:#ffe9a8}.tier-Silver{background:#e3e7ee}.tier-Bronze{background:#f0d2b4}.tier-Below{background:#f6d4d4}
+.letters a{display:inline-block;width:26px;text-align:center;margin:2px;color:var(--acc);text-decoration:none;font-weight:600}
+.letters a.off{color:#bbb;pointer-events:none}h2{margin:24px 0 6px;border-bottom:1px solid var(--line)}
+table{border-collapse:collapse}td,th{border:1px solid var(--line);padding:4px 8px}code,pre{background:#eef0f5;border-radius:4px;padding:1px 4px}pre{padding:8px;overflow:auto}
+#graph{width:100%;height:640px;background:#fff;border:1px solid var(--line);border-radius:8px}
+.ctl{display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;align-items:center}.bar{height:8px;background:var(--acc);border-radius:4px}
+select,button{padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:#fff}
+.rel{display:flex;gap:24px;flex-wrap:wrap}.rel div{min-width:180px}
+</style></head><body>
+<header><h1 id="ttl"></h1>
+<nav><a href="#/" data-r="">Search</a><a href="#/az" data-r="az">A-Z</a><a href="#/graph" data-r="graph">Graph</a><a href="#/groups" data-r="groups">Types</a></nav>
+<input id="q" type="search" placeholder="Search terms, acronyms, definitions...">
+<button id="lang" hidden></button></header>
+<main id="app"></main>
+<script>__D3__</script>
+<script id="data" type="application/json">__DATA__</script>
+<script>
+const D=JSON.parse(document.getElementById('data').textContent);
+const T=D.terms,BY=Object.fromEntries(T.map(t=>[t.id,t]));
+let lang=localStorage.getItem('bg-lang')||D.primary_language||'en';
+const $=s=>document.querySelector(s),app=$('#app');
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nm=t=>(lang==='pl'&&t.name_pl)||t.name;
+const df=t=>(lang==='pl'&&t.description_pl)||t.definition;
+const link=id=>BY[id]?`<a href="#/term/${esc(id)}">${esc(nm(BY[id]))}</a>`:esc(id);
+const pill=(t,c)=>`<span class="pill ${c||''}">${esc(t)}</span>`;
+function md(s){if(!s)return'';const out=[];let L=s.split('\n'),i=0;
+ const inl=x=>esc(x).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`(.+?)`/g,'<code>$1</code>');
+ while(i<L.length){const l=L[i];
+  if(l.startsWith('```')){let b=[];i++;while(i<L.length&&!L[i].startsWith('```'))b.push(L[i++]);i++;out.push('<pre>'+esc(b.join('\n'))+'</pre>');continue}
+  if(/^\s*[-*] /.test(l)){let b=[];while(i<L.length&&/^\s*[-*] /.test(L[i]))b.push('<li>'+inl(L[i++].replace(/^\s*[-*] /,''))+'</li>');out.push('<ul>'+b.join('')+'</ul>');continue}
+  if(l.startsWith('|')){let b=[];while(i<L.length&&L[i].startsWith('|'))b.push(L[i++]);const rows=b.filter(r=>!/^\|[\s:|-]+\|?$/.test(r)).map((r,k)=>'<tr>'+r.replace(/^\||\|$/g,'').split('|').map(c=>`<${k?'td':'th'}>${inl(c.trim())}</${k?'td':'th'}>`).join('')+'</tr>');out.push('<table>'+rows.join('')+'</table>');continue}
+  if(!l.trim()){i++;continue}
+  let b=[];while(i<L.length&&L[i].trim()&&!/^(\s*[-*] |\||```)/.test(L[i]))b.push(L[i++]);out.push('<p>'+inl(b.join(' '))+'</p>')}
+ return out.join('')}
+function card(t){return`<div class="card"><a class="t" href="#/term/${esc(t.id)}">${esc(nm(t))}</a> ${pill(t.type)}${t.category?pill(t.category):''}${pill(t.tier,'tier-'+t.tier)}${t.status!=='Draft'?pill(t.status):pill('Draft')}<div>${esc(df(t))}</div>${t.acronyms.length?`<div class="mut">Acronyms: ${esc(t.acronyms.join(', '))}</div>`:''}</div>`}
+function score(t,toks){const hay={n:(nm(t)+' '+t.name).toLowerCase(),a:(t.acronyms.concat(t.alternative_names)).join(' ').toLowerCase(),d:(df(t)+' '+t.definition).toLowerCase(),b:Object.values(t.sections).join(' ').toLowerCase()};let s=0;for(const k of toks){let h=0;if(hay.n===k)h+=20;else if(hay.n.startsWith(k))h+=10;else if(hay.n.includes(k))h+=6;if(hay.a.includes(k))h+=5;if(hay.d.includes(k))h+=3;if(hay.b.includes(k))h+=1;if(!h)return 0;s+=h}return s}
+function vSearch(q){q=(q||'').trim().toLowerCase();const types=[...new Set(T.map(t=>t.type))].sort();
+ const ft=$('#ftype')?$('#ftype').value:'',fs=$('#fstat')?$('#fstat').value:'';
+ app.innerHTML=`<div class="ctl"><select id="ftype"><option value="">All types</option>${types.map(x=>`<option ${x===ft?'selected':''}>${esc(x)}</option>`).join('')}</select><select id="fstat"><option value="">All statuses</option>${[...new Set(T.map(t=>t.status))].map(x=>`<option ${x===fs?'selected':''}>${esc(x)}</option>`).join('')}</select><span class="mut" id="cnt"></span></div><div id="res"></div>`;
+ const run=()=>{const ft=$('#ftype').value,fs=$('#fstat').value,toks=q.split(/\s+/).filter(Boolean);
+  let r=T.filter(t=>(!ft||t.type===ft)&&(!fs||t.status===fs)).map(t=>[toks.length?score(t,toks):1,t]).filter(x=>x[0]);
+  r.sort((a,b)=>b[0]-a[0]||nm(a[1]).localeCompare(nm(b[1])));
+  $('#cnt').textContent=r.length+' of '+T.length+' terms';$('#res').innerHTML=r.slice(0,200).map(x=>card(x[1])).join('')||'<p class="mut">No match.</p>'};
+ $('#ftype').onchange=$('#fstat').onchange=run;run()}
+function vAZ(){const g={};T.slice().sort((a,b)=>nm(a).localeCompare(nm(b))).forEach(t=>{const c=(nm(t)[0]||'#').toUpperCase();(g[/[A-Z]/.test(c)?c:'#']=g[/[A-Z]/.test(c)?c:'#']||[]).push(t)});
+ const letters='#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+ app.innerHTML='<div class="letters">'+letters.map(l=>`<a class="${g[l]?'':'off'}" href="#" data-l="${l}">${l}</a>`).join('')+'</div>'+letters.filter(l=>g[l]).map(l=>`<h2 id="L${l==='#'?'num':l}">${l}</h2>`+g[l].map(t=>`<div>${link(t.id)} <span class="mut">${esc(t.type)}</span></div>`).join('')).join('');
+ app.querySelectorAll('.letters a').forEach(a=>a.onclick=e=>{e.preventDefault();const el=document.getElementById('L'+(a.dataset.l==='#'?'num':a.dataset.l));if(el)el.scrollIntoView()})}
+function vGroups(){const by=$('#gby')?$('#gby').value:'type';const keys=['type','category','status','tier'];
+ const g={};T.forEach(t=>{const k=t[by]||'(none)';(g[k]=g[k]||[]).push(t)});const mx=Math.max(...Object.values(g).map(x=>x.length));
+ app.innerHTML=`<div class="ctl">Group by <select id="gby">${keys.map(k=>`<option ${k===by?'selected':''}>${k}</option>`).join('')}</select></div>`+Object.keys(g).sort().map(k=>`<h2>${esc(k)} <span class="mut">${g[k].length}</span></h2><div class="bar" style="width:${g[k].length/mx*100}%"></div>`+g[k].sort((a,b)=>nm(a).localeCompare(nm(b))).map(t=>`<div>${link(t.id)}</div>`).join('')).join('');
+ $('#gby').onchange=vGroups}
+const EK={is_a:{c:'#2f5fd0',d:''},has_a:{c:'#1a9b6c',d:'6 3'},related:{c:'#999',d:'2 3'},homonym:{c:'#d33',d:'1 2'},boundary:{c:'#c80',d:'8 2'}};
+function edges(){const e=[];T.forEach(t=>{(t.relations.is_a||[]).forEach(x=>e.push({s:t.id,t:x,k:'is_a'}));(t.relations.has_a||[]).forEach(x=>e.push({s:x,t:t.id,k:'has_a'}));(t.related_terms||[]).forEach(x=>e.push({s:t.id,t:x,k:'related'}));(t.homonym_of||[]).forEach(x=>e.push({s:t.id,t:x,k:'homonym'}));if(t.boundary_term_ref)e.push({s:t.id,t:t.boundary_term_ref,k:'boundary'})});return e.filter(x=>BY[x.s]&&BY[x.t])}
+function drawGraph(el,focus,h){const W=el.clientWidth||900,H=h||el.clientHeight||600;const svg=d3.select(el).html('').append('svg').attr('width','100%').attr('height',H).attr('viewBox',[0,0,W,H]);
+ let E=edges(),ids=new Set(T.map(t=>t.id));
+ if(focus){const n=new Set([focus]);E.forEach(x=>{if(x.s===focus)n.add(x.t);if(x.t===focus)n.add(x.s)});E=E.filter(x=>n.has(x.s)&&n.has(x.t));ids=n}
+ else{const c=new Set();E.forEach(x=>{c.add(x.s);c.add(x.t)});ids=c}
+ E=E.map(x=>({source:x.s,target:x.t,k:x.k}));
+ const N=[...ids].map(id=>({id,t:BY[id]}));const typ=[...new Set(T.map(t=>t.type))].sort(),col=d3.scaleOrdinal(d3.schemeTableau10).domain(typ);
+ const g=svg.append('g');svg.call(d3.zoom().scaleExtent([.2,5]).on('zoom',e=>g.attr('transform',e.transform)));
+ svg.append('defs').append('marker').attr('id','ar').attr('viewBox','0 -5 10 10').attr('refX',18).attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto').append('path').attr('d','M0,-5L10,0L0,5').attr('fill','#2f5fd0');
+ const L=g.selectAll('line').data(E).join('line').attr('stroke',d=>EK[d.k].c).attr('stroke-dasharray',d=>EK[d.k].d).attr('stroke-width',1.5).attr('marker-end',d=>d.k==='is_a'?'url(#ar)':null);
+ const Nd=g.selectAll('g.n').data(N).join('g').attr('class','n').style('cursor','pointer').on('click',(e,d)=>location.hash='#/term/'+d.id);
+ Nd.append('circle').attr('r',d=>d.id===focus?10:7).attr('fill',d=>col(d.t.type)).attr('stroke','#fff');
+ Nd.append('text').text(d=>nm(d.t)).attr('x',10).attr('y',4).attr('font-size',11).attr('fill','#1d2330');Nd.append('title').text(d=>nm(d.t)+' ('+d.t.type+')');
+ const sim=d3.forceSimulation(N).force('l',d3.forceLink(E).id(d=>d.id).distance(70)).force('c',d3.forceManyBody().strength(-160)).force('x',d3.forceX(W/2).strength(.05)).force('y',d3.forceY(H/2).strength(.05));
+ Nd.call(d3.drag().on('start',(e,d)=>{if(!e.active)sim.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y}).on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y}).on('end',(e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=d.fy=null}));
+ const paint=()=>{L.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);Nd.attr('transform',d=>`translate(${d.x},${d.y})`)};
+ sim.stop();for(let i=0;i<300;i++)sim.tick();paint();sim.on('tick',paint);
+ return{typ,col,n:N.length,e:E.length}}
+function vGraph(focus){app.innerHTML=`<div class="ctl"><b>Relationship graph</b>${focus?`<span>Focus: ${link(focus)} <a href="#/graph">show all</a></span>`:''}<span id="leg" class="mut"></span></div><div id="graph"></div>`;
+ const r=drawGraph($('#graph'),focus);$('#leg').innerHTML=r.n+' terms, '+r.e+' links. Edges: '+Object.entries(EK).map(([k,v])=>`<span style="color:${v.c}">&#9632; ${k}</span>`).join(' ')+' | '+r.typ.map(t=>`<span style="color:${r.col(t)}">&#9679; ${esc(t)}</span>`).join(' ')}
+function rel(label,ids){return ids&&ids.length?`<div><b>${label}</b><br>${ids.map(link).join('<br>')}</div>`:''}
+function vTerm(id){const t=BY[id];if(!t){app.innerHTML='<p>Unknown term.</p>';return}
+ const inc=(k)=>T.filter(x=>(x.relations[k]||[]).includes(id)).map(x=>x.id);
+ const secs=Object.entries(t.sections).map(([k,v])=>`<h2>${esc(t.titles[k]||k)}</h2>${md(v)}`).join('');
+ const owners=['business_owner','technical_owner','data_steward'].filter(k=>t.owners[k]).map(k=>`${k.replace('_',' ')}: ${esc(t.owners[k])}`).join(' | ');
+ app.innerHTML=`<h1 style="margin-bottom:4px">${esc(nm(t))}</h1><div>${pill(t.type)}${t.category?pill(t.category):''}${pill(t.tier,'tier-'+t.tier)}${pill(t.status)}${pill('v'+t.version)}<span class="mut"> id: ${esc(t.id)}</span></div>
+ ${lang==='pl'&&t.name_pl?`<div class="mut">EN: ${esc(t.name)}</div>`:(t.name_pl?`<div class="mut">PL: ${esc(t.name_pl)}</div>`:'')}
+ <p style="font-size:17px">${esc(df(t))}</p>${t.description_pl&&lang!=='pl'?`<p class="mut">PL: ${esc(t.description_pl)}</p>`:''}${secs}
+ <h2>Relations</h2><div class="rel">${rel('Is a',t.relations.is_a)}${rel('Has a',t.relations.has_a)}${rel('Subtypes',inc('is_a'))}${rel('Part of',inc('has_a'))}${rel('Related',t.related_terms)}${rel('Homonym of',t.homonym_of)}${rel('Boundary',t.boundary_term_ref?[t.boundary_term_ref]:[])}${rel('Successor',t.successor_term?[t.successor_term]:[])}</div>
+ <div id="graph" style="height:300px;margin-top:12px"></div>
+ ${t.alternative_names.length||t.acronyms.length?`<p class="mut">Also known as: ${esc(t.alternative_names.concat(t.acronyms).join(', '))}</p>`:''}
+ ${t.concordance.length?`<h2>Sources</h2>${t.concordance.map(c=>`<div><a href="${esc(c.url)}">${esc(c.label)}</a></div>`).join('')}`:''}
+ <p class="mut">${owners}${owners?' | ':''}reviewed: ${esc(t.last_reviewed||'never')} | origin: ${esc(t.source_origin||'n/a')}</p>
+ ${t.issues.length?`<h2>Open rule issues</h2><ul>${t.issues.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>`:''}`;
+ drawGraph($('#graph'),id,300)}
+function route(){const h=location.hash.replace(/^#\/?/,'').split('/');const r=h[0]||'';
+ document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.dataset.r===(r==='term'?'':r)));
+ if(r==='az')vAZ();else if(r==='graph')vGraph(h[1]);else if(r==='groups')vGroups();else if(r==='term')vTerm(h[1]);else vSearch($('#q').value)}
+$('#ttl').textContent=D.title;
+$('#q').oninput=()=>{if(location.hash.replace(/^#\/?/,'')!=='')location.hash='#/';else vSearch($('#q').value)};
+if(D.languages.includes('pl')){const b=$('#lang');b.hidden=false;const s=()=>{b.textContent=lang.toUpperCase()};s();b.onclick=()=>{lang=lang==='pl'?'en':'pl';localStorage.setItem('bg-lang',lang);s();route()}}
+addEventListener('hashchange',route);route();
+</script></body></html>

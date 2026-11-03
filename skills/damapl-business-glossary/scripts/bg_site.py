@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""Build the derived views: one offline HTML site (search, A-Z, graph,
+type/category views, per-term pages), terms.json, glossary.csv, a-z.md.
+
+D3 is inlined from assets/vendor, so index.html opens with no server and
+no network. Output goes to <repo>/generated/ (gitignored by default).
+
+  bg_site.py --repo G [--out DIR] [--dry-run]
+"""
+
+import argparse
+import csv
+import io
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from bg_core import (SKILL_DIR, as_list, common_args, need_repo,
+                     rel_targets, write_text)
+from bg_validate import run
+
+OWNER_KEYS = ('created_by', 'business_owner', 'technical_owner',
+              'data_steward')
+
+
+def term_json(t, tr, issues):
+  fm = t['fm']
+  rels = rel_targets(fm)
+  return {
+    'id': fm.get('id'), 'name': fm.get('name') or t['title'],
+    'name_pl': fm.get('name_pl') or '', 'type': fm.get('type') or 'Concept',
+    'category': fm.get('category') or '',
+    'status': fm.get('status') or 'Draft', 'tier': tr,
+    'acronyms': [str(x) for x in as_list(fm.get('acronyms'))],
+    'alternative_names': [str(x) for x in as_list(
+      fm.get('alternative_names'))],
+    'definition': t['definition'],
+    'description_pl': fm.get('description_pl') or '',
+    'sections': t['sections'], 'titles': t['titles'],
+    'related_terms': as_list(fm.get('related_terms')),
+    'relations': {k: v for k, v in rels.items() if v},
+    'homonym_of': as_list(fm.get('homonym_of')),
+    'boundary_term_ref': fm.get('boundary_term_ref'),
+    'successor_term': fm.get('successor_term'),
+    'concordance': [c for c in as_list(fm.get('concordance'))
+                    if isinstance(c, dict)],
+    'owners': {k: str(fm[k]) for k in OWNER_KEYS if fm.get(k)},
+    'version': str(fm.get('version') or ''),
+    'last_reviewed': str(fm.get('last_reviewed') or ''),
+    'source_origin': str(fm.get('source_origin') or ''),
+    'issues': issues,
+  }
+
+
+def main():
+  ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
+  common_args(ap)
+  ap.add_argument('--out', default=None, help='default <repo>/generated')
+  a = ap.parse_args()
+  repo = need_repo(a)
+  cfg, prof, terms, viol, tiers = run(repo)
+  out = os.path.abspath(a.out or os.path.join(repo, 'generated'))
+  issues = {}
+  for v in viol:
+    if v['level'] == 'MUST':
+      issues.setdefault(v['term'], []).append(
+        '%s: %s' % (v['rule'], v['message']))
+  items = []
+  for t in terms:
+    i = t['fm'].get('id')
+    if i and t['fm'].get('status') != 'Archived':
+      items.append(term_json(t, tiers.get(i, 'Below'), issues.get(i, [])))
+  items.sort(key=lambda x: x['name'].lower())
+  data = {
+    'title': cfg.get('name', 'Business Glossary'),
+    'languages': cfg.get('languages', ['en']),
+    'primary_language': cfg.get('primary_language', 'en'),
+    'profile': prof.get('name'), 'terms': items,
+  }
+  blob = json.dumps(data, ensure_ascii=False).replace('</', '<\\/')
+  tpl = open(os.path.join(SKILL_DIR, 'assets', 'site_template.html'),
+             encoding='utf-8').read()
+  d3 = open(os.path.join(SKILL_DIR, 'assets', 'vendor', 'd3.min.js'),
+            encoding='utf-8').read().replace('</script', '<\\/script')
+  html = (tpl.replace('__TITLE__', data['title'])
+          .replace('__D3__', d3).replace('__DATA__', blob))
+  buf = io.StringIO()
+  w = csv.writer(buf)
+  w.writerow(['id', 'name', 'name_pl', 'type', 'category', 'status',
+              'tier', 'definition', 'version'])
+  for x in items:
+    w.writerow([x['id'], x['name'], x['name_pl'], x['type'], x['category'],
+                x['status'], x['tier'], x['definition'], x['version']])
+  az = ['---', 'title: %s A-Z index' % data['title'],
+        'summary: Generated alphabetical index of every glossary term; '
+        'do not edit by hand.', '---', '']
+  cur = ''
+  for x in items:
+    L = x['name'][:1].upper()
+    if L != cur:
+      cur = L
+      az += ['', '## ' + L, '']
+    az.append('- [%s](../terms/%s.md) (%s): %s' % (
+      x['name'], x['id'], x['type'], x['definition'][:100]))
+  files = {
+    'site/index.html': html,
+    'terms.json': json.dumps(data, ensure_ascii=False, indent=1),
+    'glossary.csv': buf.getvalue(),
+    'a-z.md': '\n'.join(az) + '\n',
+    'validation.json': json.dumps(
+      {'violations': viol, 'tiers': tiers}, indent=1),
+  }
+  for rel, text in files.items():
+    print('%s %s (%d KB)' % ('would write' if a.dry_run else 'wrote',
+                             os.path.join(out, rel), len(text) // 1024))
+    write_text(os.path.join(out, rel), text, a.dry_run)
+  print('%d terms' % len(items))
+
+
+if __name__ == '__main__':
+  main()

@@ -1,0 +1,9 @@
+DAMA Poland skills (DAMA Day 2026 trial)
+Copyright 2026 Arkadiusz Dąbkowski and Michał Krzyżanowski
+Licensed under the Apache License, Version 2.0.
+
+The repository is hosted by DAMA Poland in the dama-poland GitHub organisation. The authors hold the copyright as individuals.
+
+The content is derived from data-architect-ai-tools v0.3 (dama-poland/data-architect-ai-tools), also by the authors.
+
+skills/damapl-business-glossary/assets/vendor/d3.min.js is D3, licensed under the ISC licence (see skills/damapl-business-glossary/assets/vendor/LICENSE-d3.txt).

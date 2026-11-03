@@ -1,0 +1,12 @@
+name: Synthetic Demo Glossary
+languages:
+- en
+primary_language: en
+profile: rules/profile.yaml
+terms_dir: terms
+default_type: Concept
+polish_required: false
+defaults:
+  author: Synthetic data steward
+profile_options: {}
+sources: []

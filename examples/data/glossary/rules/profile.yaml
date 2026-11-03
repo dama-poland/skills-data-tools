@@ -1,0 +1,51 @@
+# Lightweight profile: identity, one-sentence definition, resolvable links.
+name: minimal
+title: Minimal glossary profile
+options: {}
+types: [Concept, Entity, Process, Role, Event, Metric, System, Document]
+statuses: [Draft, Under Review, Approved, Deprecated, Archived]
+agent_status: Draft
+approval_reset: false
+version_format: a.b.c
+template:
+  id: '{id}'
+  name: '{name}'
+  type: '{type}'
+  acronyms: []
+  alternative_names: []
+  status: Draft
+  source_origin: '{source_origin}'
+  created: '{today}'
+  related_terms: []
+  relations: {}
+  last_reviewed: null
+  version: '1.0.0'
+  version_date: '{today}'
+  changed_by: '{author}'
+sections: [Description Details, What it is]
+tiers:
+  - name: Gold
+    includes: Silver
+    equals: {status: Approved}
+    all_must: true
+  - name: Silver
+    includes: Bronze
+    fields: [what_it_is]
+  - name: Bronze
+    rules: [ID-01, DEF-01]
+    fields: [id, name, type, definition]
+rules:
+  - {id: ID-01, check: regex, params: {field: id, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'}}
+  - {id: ID-02, check: unique, params: {field: id}}
+  - {id: ID-03, check: ids_lock}
+  - {id: ID-04, check: filename_id}
+  - {id: NAME-04, check: unique, params: {field: name, nocase: true}}
+  - {id: DEF-01, check: sentence_max, params: {max: 2}}
+  - {id: DEF-03, check: no_leading}
+  - {id: TYPE-01, check: enum, params: {field: type, values_from: types}}
+  - {id: LIFE-01, check: enum, params: {field: status, values_from: statuses}}
+  - {id: LIFE-02, check: when_then, params: {when: {field: status, equals: Deprecated}, field: successor_term}}
+  - {id: REL-01, check: resolves, params: {fields: [related_terms, successor_term]}}
+  - {id: REL-04, check: relations}
+  - {id: REL-07, check: acyclic}
+  - {id: REL-08, level: SHOULD, check: related_oneway, params: {max: 3}}

@@ -1,0 +1,2 @@
+systems/supply-assessment.md: requires review; SUPPLY-ARCH-v1 -> SUPPLY-ARCH-v2
+affected notes: 1

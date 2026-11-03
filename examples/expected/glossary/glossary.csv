@@ -1,0 +1,12 @@
+id,name,name_pl,type,category,status,tier,definition,version
+complaint,Complaint,,Event,,Draft,Silver,A complaint that references a device unit.,1.0.0
+device,Device,,Concept,,Under Review,Silver,A generic label that the source systems use for different things.,1.0.0
+device-model,Device Model,,Entity,,Approved,Gold,"The design version of a device, identified by a model code.",1.0.0
+device-unit,Device Unit,,Entity,,Approved,Gold,A physical device with a serial number.,1.0.0
+dose-event,Dose Event,,Event,,Draft,Silver,An administration of a drug dose captured on the case report form.,1.0.0
+kit,Kit,,Entity,,Approved,Gold,"A drug package shipped to a site, carrying a randomisation number.",1.0.0
+randomisation-number,Randomisation Number,,Concept,,Approved,Gold,A number that assigns a kit to a treatment arm without revealing the arm.,1.0.0
+site,Site,,Entity,,Approved,Gold,A location that takes part in a study and receives shipments.,1.0.0
+study,Study,,Entity,,Approved,Gold,A clinical investigation identified by a unique study code.,1.0.0
+subject,Subject,,Entity,,Approved,Gold,"A participant enrolled in a study, identified by a subject code.",1.0.0
+visit,Visit,,Event,,Draft,Silver,A planned or actual meeting between a subject and a site during a study.,1.0.0

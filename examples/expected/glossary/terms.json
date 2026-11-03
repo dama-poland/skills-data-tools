@@ -1,0 +1,366 @@
+{
+ "title": "Synthetic Demo Glossary",
+ "languages": [
+  "en"
+ ],
+ "primary_language": "en",
+ "profile": "minimal",
+ "terms": [
+  {
+   "id": "complaint",
+   "name": "Complaint",
+   "name_pl": "",
+   "type": "Event",
+   "category": "",
+   "status": "Draft",
+   "tier": "Silver",
+   "acronyms": [],
+   "alternative_names": [],
+   "definition": "A complaint that references a device unit.",
+   "description_pl": "",
+   "sections": {
+    "description_details": "Proposed by the agent from the Device Registry note.",
+    "what_it_is": "- References a device unit"
+   },
+   "titles": {
+    "description_details": "Description Details",
+    "what_it_is": "What it is"
+   },
+   "related_terms": [],
+   "relations": {},
+   "homonym_of": [],
+   "boundary_term_ref": null,
+   "successor_term": null,
+   "concordance": [],
+   "owners": {},
+   "version": "1.0.0",
+   "last_reviewed": "",
+   "source_origin": "DEVICE-REGISTRY-ARCH-v1",
+   "issues": []
+  },
+  {
+   "id": "device",
+   "name": "Device",
+   "name_pl": "",
+   "type": "Concept",
+   "category": "",
+   "status": "Under Review",
+   "tier": "Silver",
+   "acronyms": [],
+   "alternative_names": [],
+   "definition": "A generic label that the source systems use for different things.",
+   "description_pl": "",
+   "sections": {
+    "description_details": "CTMS uses it for a free-text note, EDC for a yes or no flag. The steward is deciding whether the label stays in the glossary or is replaced by Device Model and Device Unit.",
+    "what_it_is": "- Is a label, not a single concept"
+   },
+   "titles": {
+    "description_details": "Description Details",
+    "what_it_is": "What it is"
+   },
+   "related_terms": [],
+   "relations": {},
+   "homonym_of": [],
+   "boundary_term_ref": null,
+   "successor_term": null,
+   "concordance": [],
+   "owners": {},
+   "version": "1.0.0",
+   "last_reviewed": "",
+   "source_origin": "CTMS-ARCH-v1, EDC-ARCH-v1",
+   "issues": []
+  },
+  {
+   "id": "device-model",
+   "name": "Device Model",
+   "name_pl": "",
+   "type": "Entity",
+   "category": "",
+   "status": "Approved",
+   "tier": "Gold",
+   "acronyms": [],
+   "alternative_names": [],
+   "definition": "The design version of a device, identified by a model code.",
+   "description_pl": "",
+   "sections": {
+    "description_details": "Supply packs a model into a kit; the Device Registry keeps the master data.",
+    "what_it_is": "- Has a model code\n- Describes many device units"
+   },
+   "titles": {
+    "description_details": "Description Details",
+    "what_it_is": "What it is"
+   },
+   "related_terms": [],
+   "relations": {},
+   "homonym_of": [
+    "device-unit"
+   ],
+   "boundary_term_ref": null,
+   "successor_term": null,
+   "concordance": [],
+   "owners": {},
+   "version": "1.0.0",
+   "last_reviewed": "2026-10-24",
+   "source_origin": "DEVICE-REGISTRY-ARCH-v1",
+   "issues": []
+  },
+  {
+   "id": "device-unit",
+   "name": "Device Unit",
+   "name_pl": "",
+   "type": "Entity",
+   "category": "",
+   "status": "Approved",
+   "tier": "Gold",
+   "acronyms": [],
+   "alternative_names": [],
+   "definition": "A physical device with a serial number.",
+   "description_pl": "",
+   "sections": {
+    "description_details": "Not the same as the design version, which is the Device Model.",
+    "what_it_is": "- Has a serial number\n- Can be referenced by a complaint"
+   },
+   "titles": {
+    "description_details": "Description Details",
+    "what_it_is": "What it is"
+   },
+   "related_terms": [],
+   "relations": {},
+   "homonym_of": [
+    "device-model"
+   ],
+   "boundary_term_ref": null,
+   "successor_term": null,
+   "concordance": [],
+   "owners": {},
+   "version": "1.0.0",
+   "last_reviewed": "2026-10-24",
+   "source_origin": "DEVICE-REGISTRY-ARCH-v1",
+   "issues": []
+  },
+  {
+   "id": "dose-event",
+   "name": "Dose Event",
+   "name_pl": "",
+   "type": "Event",
+   "category": "",
+   "status": "Draft",
+   "tier": "Silver",
+   "acronyms": [],
+   "alternative_names": [],
+   "definition": "An administration of a drug dose captured on the case report form.",
+   "description_pl": "",
+   "sections": {
+    "description_details": "Drafted by the agent from the EDC note.",
+    "what_it_is": "- Has a dose date and amount"
+   },
+   "titles": {
+    "description_details": "Description Details",
+    "what_it_is": "What it is"
+   },
+   "related_terms": [],
+   "relations": {},
+   "homonym_of": [],
+   "boundary_term_ref": null,
+   "successor_term": null,
+   "concordance": [],
+   "owners": {},
+   "version": "1.0.0",
+   "last_reviewed": "",
+   "source_origin": "EDC-ARCH-v1",
+   "issues": []
+  },
+  {
+   "id": "kit",
+   "name": "Kit",
+   "name_pl": "",
+   "type": "Entity",
+   "category": "",
+   "status": "Approved",
+   "tier": "Gold",
+   "acronyms": [],
+   "alternative_names": [],
+   "definition": "A drug package shipped to a site, carrying a randomisation number.",
+   "description_pl": "",
+   "sections": {
+    "description_details": "Supply v2 also records the model code of the device packed in the kit.",
+    "what_it_is": "- Is shipped to a site\n- Carries a randomisation number"
+   },
+   "titles": {
+    "description_details": "Description Details",
+    "what_it_is": "What it is"
+   },
+   "related_terms": [],
+   "relations": {},
+   "homonym_of": [],
+   "boundary_term_ref": null,
+   "successor_term": null,
+   "concordance": [],
+   "owners": {},
+   "version": "1.0.0",
+   "last_reviewed": "2026-10-24",
+   "source_origin": "SUPPLY-ARCH-v2",
+   "issues": []
+  },
+  {
+   "id": "randomisation-number",
+   "name": "Randomisation Number",
+   "name_pl": "",
+   "type": "Concept",
+   "category": "",
+   "status": "Approved",
+   "tier": "Gold",
+   "acronyms": [],
+   "alternative_names": [],
+   "definition": "A number that assigns a kit to a treatment arm without revealing the arm.",
+   "description_pl": "",
+   "sections": {
+    "description_details": "Approved in the glossary, but no system note links to it yet.",
+    "what_it_is": "- Is carried by a kit"
+   },
+   "titles": {
+    "description_details": "Description Details",
+    "what_it_is": "What it is"
+   },
+   "related_terms": [],
+   "relations": {},
+   "homonym_of": [],
+   "boundary_term_ref": null,
+   "successor_term": null,
+   "concordance": [],
+   "owners": {},
+   "version": "1.0.0",
+   "last_reviewed": "2026-10-24",
+   "source_origin": "SUPPLY-ARCH-v2",
+   "issues": []
+  },
+  {
+   "id": "site",
+   "name": "Site",
+   "name_pl": "",
+   "type": "Entity",
+   "category": "",
+   "status": "Approved",
+   "tier": "Gold",
+   "acronyms": [],
+   "alternative_names": [],
+   "definition": "A location that takes part in a study and receives shipments.",
+   "description_pl": "",
+   "sections": {
+    "description_details": "CTMS and Supply describe the same site from different angles: participation and delivery.",
+    "what_it_is": "- Takes part in a study\n- Is the destination of a shipment"
+   },
+   "titles": {
+    "description_details": "Description Details",
+    "what_it_is": "What it is"
+   },
+   "related_terms": [],
+   "relations": {},
+   "homonym_of": [],
+   "boundary_term_ref": null,
+   "successor_term": null,
+   "concordance": [],
+   "owners": {},
+   "version": "1.0.0",
+   "last_reviewed": "2026-10-24",
+   "source_origin": "CTMS-ARCH-v1",
+   "issues": []
+  },
+  {
+   "id": "study",
+   "name": "Study",
+   "name_pl": "",
+   "type": "Entity",
+   "category": "",
+   "status": "Approved",
+   "tier": "Gold",
+   "acronyms": [],
+   "alternative_names": [],
+   "definition": "A clinical investigation identified by a unique study code.",
+   "description_pl": "",
+   "sections": {
+    "description_details": "The study code is the key that CTMS, EDC and Supply use to scope their data.",
+    "what_it_is": "- Has a unique study code\n- Groups sites and subjects"
+   },
+   "titles": {
+    "description_details": "Description Details",
+    "what_it_is": "What it is"
+   },
+   "related_terms": [],
+   "relations": {},
+   "homonym_of": [],
+   "boundary_term_ref": null,
+   "successor_term": null,
+   "concordance": [],
+   "owners": {},
+   "version": "1.0.0",
+   "last_reviewed": "2026-10-24",
+   "source_origin": "CTMS-ARCH-v1",
+   "issues": []
+  },
+  {
+   "id": "subject",
+   "name": "Subject",
+   "name_pl": "",
+   "type": "Entity",
+   "category": "",
+   "status": "Approved",
+   "tier": "Gold",
+   "acronyms": [],
+   "alternative_names": [],
+   "definition": "A participant enrolled in a study, identified by a subject code.",
+   "description_pl": "",
+   "sections": {
+    "description_details": "CTMS creates the code and EDC reuses it.",
+    "what_it_is": "- Has a subject code\n- Belongs to one study"
+   },
+   "titles": {
+    "description_details": "Description Details",
+    "what_it_is": "What it is"
+   },
+   "related_terms": [],
+   "relations": {},
+   "homonym_of": [],
+   "boundary_term_ref": null,
+   "successor_term": null,
+   "concordance": [],
+   "owners": {},
+   "version": "1.0.0",
+   "last_reviewed": "2026-10-24",
+   "source_origin": "CTMS-ARCH-v1",
+   "issues": []
+  },
+  {
+   "id": "visit",
+   "name": "Visit",
+   "name_pl": "",
+   "type": "Event",
+   "category": "",
+   "status": "Draft",
+   "tier": "Silver",
+   "acronyms": [],
+   "alternative_names": [],
+   "definition": "A planned or actual meeting between a subject and a site during a study.",
+   "description_pl": "",
+   "sections": {
+    "description_details": "Proposed by the agent from the CTMS note; no human has reviewed it.",
+    "what_it_is": "- Has a planned or actual date"
+   },
+   "titles": {
+    "description_details": "Description Details",
+    "what_it_is": "What it is"
+   },
+   "related_terms": [],
+   "relations": {},
+   "homonym_of": [],
+   "boundary_term_ref": null,
+   "successor_term": null,
+   "concordance": [],
+   "owners": {},
+   "version": "1.0.0",
+   "last_reviewed": "",
+   "source_origin": "CTMS-ARCH-v1",
+   "issues": []
+  }
+ ]
+}

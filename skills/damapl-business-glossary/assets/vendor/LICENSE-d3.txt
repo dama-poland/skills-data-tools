@@ -1,0 +1,2 @@
+D3 v7.8.5, Copyright 2010-2023 Mike Bostock. ISC License (https://github.com/d3/d3/blob/main/LICENSE).
+Vendored unmodified as d3.min.js so the generated site works offline.
