@@ -21,10 +21,18 @@ summary: The source adapters of the business-glossary skill, what each reads, th
 `obsidian` and `folder` treat a note whose path or title matches
 `glossary|terms|definitions` as a term list, not as one term.
 
+## Candidate ids
+
+The id is the ASCII slug of the name. Polish and other Latin diacritics are
+transliterated (`Żółć` -> `zolc`, `Łódź` -> `lodz`). A name with no Latin
+letter or digit gets `term-<hash>`. Two different names never share an id:
+the later one gets `<slug>-<hash of the name>`, in a fixed order, so ids do
+not depend on the order of the sources.
+
 ## Candidate format
 
 ```yaml
-id: customer-journey          # slug of the name; the future term id
+id: customer-journey          # ASCII slug of the name (ł -> l, ż -> z); the future term id
 name: Customer Journey
 definition: first paragraph or the longest definition found
 aliases: [Buyer Journey]

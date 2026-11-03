@@ -7,9 +7,11 @@ only the touched frontmatter block or body section changes.
 
 import datetime
 import difflib
+import hashlib
 import os
 import re
 import sys
+import unicodedata
 
 try:
   import yaml
@@ -32,10 +34,41 @@ def today():
   return datetime.date.today().isoformat()
 
 
+# Letters that Unicode decomposition does not reduce to ASCII.
+_TRANSLIT = str.maketrans({
+  '\u0142': 'l', '\u0141': 'L', '\u0111': 'd', '\u0110': 'D',
+  '\u00f8': 'o', '\u00d8': 'O', '\u00df': 'ss', '\u00e6': 'ae',
+  '\u00c6': 'AE', '\u0153': 'oe', '\u0152': 'OE', '\u00fe': 'th',
+  '\u00f0': 'd', '\u0131': 'i'})
+
+
+def name_key(text):
+  """Identity of a term name: case, spacing, hyphens and underscores do
+  not matter; letters, diacritics and symbols do."""
+  t = unicodedata.normalize('NFC', str(text)).casefold()
+  return re.sub(r'[\s_-]+', ' ', t).strip()
+
+
 def slugify(text):
-  s = re.sub(r'\(.*?\)', ' ', text.lower())
+  """ASCII id of a name. Latin diacritics are transliterated (ł -> l,
+  ż -> z). A name with no Latin letter or digit gets `term-<hash>`, so an
+  id is never empty."""
+  s = re.sub(r'\(.*?\)', ' ', str(text)).translate(_TRANSLIT)
+  s = unicodedata.normalize('NFKD', s)
+  s = ''.join(c for c in s if not unicodedata.combining(c)).lower()
   s = re.sub(r'[^a-z0-9]+', '-', s).strip('-')
-  return s
+  return s or 'term-' + name_hash(text)
+
+
+def name_hash(text):
+  return hashlib.sha1(name_key(text).encode('utf-8')).hexdigest()[:6]
+
+
+def term_name_keys(fm):
+  """Name keys under which an existing term is known."""
+  names = [fm.get('name'), fm.get('name_pl')]
+  names += as_list(fm.get('alternative_names'))
+  return {name_key(n) for n in names if n}
 
 
 def normalize_classification(value):

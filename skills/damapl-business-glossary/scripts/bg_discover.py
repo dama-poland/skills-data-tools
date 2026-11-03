@@ -19,8 +19,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bg_adapters import ADAPTERS, KIND_HELP, detect_kind, run_adapter
 from bg_core import (dump_yaml, load_config, load_terms, need_repo, slugify,
-                     common_args, write_text, as_list,
-                     highest_classification, source_ref_of)
+                     common_args, write_text, as_list, name_hash, name_key,
+                     highest_classification, source_ref_of, term_name_keys)
 
 JUNK = re.compile(r'(?i)^(index|home|readme|todo|untitled|inbox|template|'
                   r'daily|\d{4}-\d{2}-\d{2}|new note)\b')
@@ -48,6 +48,30 @@ def parse_source(s):
   if rest and head in ADAPTERS:
     return head, rest
   return detect_kind(s), s
+
+
+def assign_ids(merged, known_names):
+  """Give every name a unique id. A name keeps the plain slug unless
+  another name already owns it; then it gets `<slug>-<name hash>`. A name
+  that an existing term carries keeps that term's id first (plain or
+  suffixed)."""
+  taken = {}
+  for key, m in merged.items():
+    base = slugify(m['name'])
+    for sid in (base, '%s-%s' % (base, name_hash(m['name']))):
+      if key in known_names.get(sid, ()):
+        m['id'] = taken[sid] = sid
+        break
+  for key in sorted(merged):
+    m = merged[key]
+    if m['id']:
+      continue
+    sid = base = slugify(m['name'])
+    if sid in taken or sid in known_names:
+      sid = '%s-%s' % (base, name_hash(m['name']))
+    while sid in taken or sid in known_names:
+      sid += '-x'
+    m['id'] = taken[sid] = sid
 
 
 def mentions(name, corpus_lower):
@@ -88,17 +112,19 @@ def main():
     print('%-10s %-40s %d raw candidates' % (kind, path[-40:], len(got)))
     raw += got
 
-  existing = {t['fm'].get('id') for t in load_terms(repo, cfg)}
+  terms = load_terms(repo, cfg)
+  existing = {t['fm'].get('id') for t in terms}
+  known_names = {t['fm'].get('id'): term_name_keys(t['fm']) for t in terms}
+  # One entry per name; ids are assigned afterwards so that they do not
+  # depend on the order of the sources.
   merged = {}
   for c in raw:
     name = c['name'].strip()
     if (len(name) < 3 or len(name.split()) > 6 or JUNK.match(name)):
       continue
-    cid = slugify(name)
-    if not cid:
-      continue
-    m = merged.setdefault(cid, {
-      'id': cid, 'name': name, 'definition': '', 'aliases': [],
+    key = name_key(name)
+    m = merged.setdefault(key, {
+      'id': None, 'name': name, 'definition': '', 'aliases': [],
       'type_hint': c['type_hint'], 'links': [], 'tags': [],
       'bullets': [], 'sources': [], 'name_pl': '', 'definition_pl': '',
       'confidentiality': None})
@@ -117,6 +143,7 @@ def main():
     ref = source_ref_of(c)
     if ref not in m['sources']:
       m['sources'].append(ref)
+  assign_ids(merged, known_names)
   cands = [m for m in merged.values()
            if a.keep_empty or m['definition']]
 
@@ -131,8 +158,11 @@ def main():
   if a.limit:
     cands = cands[:a.limit]
   known = {m['id'] for m in cands}
+  by_name = {name_key(m['name']): m['id'] for m in cands}
   for m in cands:
-    m['links'] = [slugify(x) for x in m['links'] if slugify(x) in known]
+    ids = (by_name.get(name_key(x)) or (
+      slugify(x) if slugify(x) in known else None) for x in m['links'])
+    m['links'] = sorted({i for i in ids if i})
 
   out = os.path.join(repo, '.glossary', 'candidates.yaml')
   print('%d candidates (%d already terms) -> %s%s' % (

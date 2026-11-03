@@ -40,8 +40,8 @@ from bg_adapters import run_adapter
 from bg_core import (CLASSIFICATIONS, as_list, bump_text, common_args,
                      default_author, dump_yaml, highest_classification,
                      load_config, load_profile, load_terms, load_yaml,
-                     need_repo, normalize_classification, read_term,
-                     set_definition, set_fm_field, set_section, slugify,
+                     name_key, need_repo, normalize_classification,
+                     read_term, set_definition, set_fm_field, set_section,
                      source_ref_of, unified, write_text)
 
 IMMUTABLE = ('id', 'created_by', 'created')
@@ -122,10 +122,12 @@ def apply_op(t, op, prof, author, allow_status):
 
 def propose(repo, cfg, terms):
   """Compare sources with existing terms; return patch ops, apply none."""
-  ops, seen = [], {t['fm'].get('id'): t for t in terms}
+  ops, seen = [], {}
+  for t in terms:
+    seen.setdefault(name_key(t['fm'].get('name') or ''), t)
   for s in cfg.get('sources') or []:
     for c in run_adapter(s['kind'], s['path']):
-      t = seen.get(slugify(c['name']))
+      t = seen.get(name_key(c['name']))
       if not t or not c['definition'] or len(c['definition']) > 600:
         continue
       if c['definition'].strip() != t['definition'].strip():
