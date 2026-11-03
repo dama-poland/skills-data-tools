@@ -5,7 +5,7 @@ options: {}
 types: [Concept, Entity, Process, Role, Event, Metric, System, Document]
 statuses: [Draft, Under Review, Approved, Deprecated, Archived]
 agent_status: Draft
-approval_reset: false
+approval_reset: true
 version_format: a.b.c
 template:
   id: '{id}'

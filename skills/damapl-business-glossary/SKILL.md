@@ -115,7 +115,7 @@ A patch op names an `id` and any of `set`, `add`, `remove`, `definition`,
 and bumps `version`, `version_date` and `changed_by`. Any `set`, `add` or
 `remove` of `id`, `created`, `created_by`, the bump fields or the approval
 fields is refused, and `status` changes only through `set`. An Approved term edited at level a or b returns to
-Under Review when the profile enables `approval_reset`.
+Under Review when the profile enables `approval_reset` (on by default).
 
 ## Outputs (all derived, in `generated/`)
 
