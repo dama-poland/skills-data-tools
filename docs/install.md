@@ -37,7 +37,7 @@ A project may keep `.ai/damapl.config.json` in its root with `vault`, `glossary`
 
 ## After `npx skills update`
 
-`bg_init.py` writes a Makefile into a new glossary repo with the absolute path of the skill's `scripts/` folder at init time. If an update moves the skill folder, re-run `bg_init` for a new repo or edit `SK ?=` in the existing glossary Makefile.
+`bg_init.py` writes a Makefile with no machine paths, and puts the absolute path of the skill's `scripts/` folder in `.glossary/local.mk`, which it also adds to the new repo's `.gitignore`. A fresh clone, or a skill folder that an update moved, needs that one file fixed: edit `SK` in `.glossary/local.mk`, or run `make SK=<skill folder>/scripts validate`. The Makefile stops with a message when `SK` is not set. `glossary.yaml` holds no author unless `BG_AUTHOR` was set at init; the author is found when a term is written (`BG_AUTHOR`, then the config, then `git config user.email`, then `$USER`).
 
 ## Lint rules
 

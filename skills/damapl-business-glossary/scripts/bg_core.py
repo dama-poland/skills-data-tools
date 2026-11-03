@@ -10,6 +10,7 @@ import difflib
 import hashlib
 import os
 import re
+import subprocess
 import sys
 import unicodedata
 
@@ -347,10 +348,20 @@ def bump_version(version, level):
   return '%d.%d.%d' % (a, b, c + 1)
 
 
+def git_email():
+  try:
+    return subprocess.run(['git', 'config', 'user.email'], text=True,
+                          capture_output=True).stdout.strip()
+  except OSError:
+    return ''
+
+
 def default_author(cfg):
+  """BG_AUTHOR, else the repo config, else git user.email, else $USER. Found
+  when a term is written, so the shared repo holds no personal default."""
   d = (cfg.get('defaults') or {})
-  return (os.environ.get('BG_AUTHOR') or d.get('author')
-          or os.environ.get('USER', 'unknown'))
+  return (os.environ.get('BG_AUTHOR') or d.get('author') or git_email()
+          or os.environ.get('USER') or 'unknown')
 
 
 def common_args(ap):
