@@ -16,7 +16,7 @@ source_refs:
 # <Term>
 
 This template is replaced by the single term schema in
-`../references/term-schema.md`. A term is the file `terms/<id>.md`, created by
+`references/term-schema.md`. A term is the file `terms/<id>.md`, created by
 `bg_draft.py` rather than by hand, with the lifecycle `Draft`, `Under Review`,
 `Approved`, `Deprecated` and `Archived`. Agents write `Draft` only, and term
 ids never change.

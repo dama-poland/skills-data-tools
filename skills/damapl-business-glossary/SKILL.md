@@ -4,7 +4,7 @@ description: "Creates or updates a business-glossary repo (one Markdown file per
 version: "0.3"
 date: "2026-10-31"
 summary: "Skill that builds, updates, validates and renders a governed business glossary from knowledge-base sources, for agents and data architects."
-owner: "Data Architect AI Tools maintainers"
+owner: "DAMA Poland maintainers"
 status: "candidate"
 updated: "2026-10-31"
 review_by: "2027-01-31"

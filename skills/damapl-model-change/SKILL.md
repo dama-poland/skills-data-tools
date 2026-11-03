@@ -4,7 +4,7 @@ description: "Proposes a model change from a note diff, the system map and the g
 version: "0.1.0"
 date: "2026-10-31"
 summary: "Skill that tells an agent how to turn a model diff, map and gap list into a cited change proposal that only a human can approve."
-owner: "Data Architect AI Tools maintainers"
+owner: "DAMA Poland maintainers"
 status: "release-candidate"
 updated: "2026-10-31"
 review_by: "2027-01-31"

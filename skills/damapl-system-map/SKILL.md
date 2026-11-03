@@ -4,7 +4,7 @@ description: "Proposes concepts entries for system notes and builds the system m
 version: "0.1.0"
 date: "2026-10-31"
 summary: "Skill that tells an agent how to propose concept links in system notes for human approval and then build the deterministic system map."
-owner: "Data Architect AI Tools maintainers"
+owner: "DAMA Poland maintainers"
 status: "release-candidate"
 updated: "2026-10-31"
 review_by: "2027-01-31"

@@ -4,7 +4,7 @@ description: "Builds the gap list from approved concept links and the glossary, 
 version: "0.1.0"
 date: "2026-10-31"
 summary: "Skill that tells an agent how to run the deterministic gap list and present its findings to a human without resolving them."
-owner: "Data Architect AI Tools maintainers"
+owner: "DAMA Poland maintainers"
 status: "release-candidate"
 updated: "2026-10-31"
 review_by: "2027-01-31"

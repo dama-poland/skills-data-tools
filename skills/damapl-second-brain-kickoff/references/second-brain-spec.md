@@ -1,6 +1,6 @@
 ---
 title: "Second brain specification"
-summary: "Specification for an architect's second brain, including source metadata, two skills, governed answers and Business Glossary output."
+summary: "Specification for an architect's second brain, including source metadata, the six skills, governed answers and Business Glossary output."
 version: "0.2"
 date: "2026-10-24"
 updated: "2026-10-24"
@@ -33,12 +33,16 @@ Start with system data models and schema exports, then add architecture document
 
 ## 4. Skills
 
-A skill is a folder with `SKILL.md`. This release contains two skills:
+A skill is a folder with `SKILL.md`. This release contains six skills:
 
 | Skill | Job |
 |---|---|
 | `damapl-second-brain-kickoff` | Asks setup questions and creates the vault structure and `brain.md` |
 | `damapl-concept-extraction` | Proposes source-scoped business concepts and distinguishes conflicts, polysemy and open target concepts |
+| `damapl-business-glossary` | Builds, updates, validates and renders the glossary repo |
+| `damapl-system-map` | Proposes concept links in system notes and builds the system map |
+| `damapl-gap-list` | Builds the gap list from the approved concept links and the glossary |
+| `damapl-model-change` | Proposes a model change as a `decision.md` for the architect |
 
 The user invokes a skill by asking the agent to read the named `SKILL.md` file and follow it from the vault root. This does not depend on an agent-specific installation path.
 
@@ -54,7 +58,7 @@ Every answer follows `references/answer-contract.md`: direct reply, sources and 
 
 ## 7. Business Glossary output
 
-Entries follow `templates/glossary-entry.md` of the damapl-business-glossary skill. The lifecycle is `candidate` to `proposed` to `approved` to `deprecated`. Only a human moves an entry to `approved`.
+Entries follow the term schema `references/term-schema.md` of the damapl-business-glossary skill; the older `glossary-entry.md` template is retired. The lifecycle is `Draft` to `Under Review` to `Approved`, then `Deprecated` or `Archived`. Only a human moves an entry to `Approved`.
 
 Source meanings remain visible. A human may approve a new target concept by recording a dated decision with `templates/decision.md`.
 

@@ -29,4 +29,4 @@ List the systems, processes or glossary entries affected.
 
 ## Approver
 
-Name the human approver and approval date.
+Pending: the architect decides.

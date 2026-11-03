@@ -1,6 +1,6 @@
 ---
 name: damapl-concept-extraction
-description: "Pipeline step that proposes meanings of a term from sources: lists every meaning found with citations, flags factual conflicts and polysemy, and does not choose. Output feeds bg_draft as Draft terms."
+description: "Pipeline step that proposes meanings of a term from sources: lists every meaning found with citations, flags factual conflicts and polysemy, and does not choose. Output feeds bg_draft as Draft terms. Use when a term or label needs its meanings collected from the sources before a human decides which one to record."
 summary: "Pipeline step that proposes meanings of a term from sources with citations, never chooses among them, and feeds Draft terms to the glossary."
 version: "0.3"
 date: "2026-10-31"
