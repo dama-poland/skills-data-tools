@@ -151,8 +151,8 @@ Rules that need human judgment stay in `references/rules-profile.md`.
 
 ## Ontology method
 
-Tree, not mesh: one structural parent per term (`is_a` or `has_a`), at most two
-`related_terms`, one-way. `bg_relations` removes mirrored and redundant links.
+Tree, not mesh: one structural parent per term (`is_a` or `has_a`), at most
+three `related_terms`, one-way. `bg_relations` removes mirrored and redundant links.
 Details in `references/ontology-method.md`.
 
 ## References

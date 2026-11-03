@@ -4,7 +4,7 @@
 R1 drop a plain link when the pair already has a typed relation.
 R2 keep a mutual plain pair on one side only (fewer links keeps it;
    ties go to the lower id).
-R3 cap related_terms at --max entries (default 2), keeping the first.
+R3 cap related_terms at --max entries (default 3), keeping the first.
 Edits only the related_terms block (plus the version bump).
 
   bg_relations.py --repo G --dry-run
@@ -24,7 +24,7 @@ from bg_core import (REL_KEYS, as_list, bump_text, common_args,
 def main():
   ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
   common_args(ap)
-  ap.add_argument('--max', type=int, default=2)
+  ap.add_argument('--max', type=int, default=3)
   ap.add_argument('--no-bump', action='store_true',
                   help='skip the version bump (default: bump b)')
   a = ap.parse_args()

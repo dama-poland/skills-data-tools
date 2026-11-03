@@ -75,7 +75,7 @@ git, and it needs `.glossary/ids.lock` edited by hand.
 ## Relations cleanup
 
 `bg_relations.py --dry-run` then without the flag drops redundant and mirrored
-`related_terms` and caps them at two. Each changed term gets a `b` bump (use
+`related_terms` and caps them at three. Each changed term gets a `b` bump (use
 `--no-bump` to skip).
 
 ## After the update

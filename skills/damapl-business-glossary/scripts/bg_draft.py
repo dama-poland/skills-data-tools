@@ -47,7 +47,7 @@ def render(prof, cfg, cand, author):
   if 'pl' in cfg.get('languages', []):
     fm['name_pl'] = cand.get('name_pl') or ''
     fm['description_pl'] = cand.get('definition_pl') or ''
-  related = [x for x in as_list(cand.get('links')) if x != cand['id']][:2]
+  related = [x for x in as_list(cand.get('links')) if x != cand['id']][:3]
   fm['related_terms'] = related
   sents = split_sentences(unwiki(cand.get('definition', '')))
   defn = ' '.join(sents[:2]) or 'TODO: write a one or two sentence definition.'

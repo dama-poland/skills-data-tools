@@ -361,9 +361,9 @@ def k_related_oneway(terms, ctx, p):
       for x in r[k]:
         typed.add(frozenset((me, x)))
   for me, lst in rel.items():
-    if len(lst) > p.get('max', 2):
+    if len(lst) > p.get('max', 3):
       out.append((me, 'related_terms has %d entries, max %d' % (
-        len(lst), p.get('max', 2))))
+        len(lst), p.get('max', 3))))
     for x in lst:
       if me in rel.get(x, []):
         out.append((me, 'related link to %s is mirrored' % x))

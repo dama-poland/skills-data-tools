@@ -55,7 +55,7 @@ Rationale, usage or scope. Not a longer restatement of the definition.
 | `business_owner`, `technical_owner`, `data_steward` | one named person each | OWN-01, 02, 03 (profile option `owners`) |
 | `owner_confirmed` | true only after the owners accepted the role | Silver tier |
 | `concordance` | list of `{url, label}` source citations, no duplicate urls | SRC-03 |
-| `related_terms` | at most 2, one-way | REL-01, REL-08 |
+| `related_terms` | at most 3, one-way | REL-01, REL-08 |
 | `relations` | `is_a`, `has_a`, `values`, `realized_by`, `implemented_by` | REL-04..07 |
 | `homonym_of` | other meanings that share the base name | NAME-05, REL-03 |
 | `boundary_term_ref` | counterpart term in another perspective | REL-02 |

@@ -9,7 +9,8 @@ summary: The tree-not-mesh method for term relations and the generic rules the r
 
 - A tree, not a mesh. Each term has one structural parent: `is_a` (subtype) or
   `has_a` (part).
-- At most two plain `related_terms` per term, only where no typed relation fits.
+- At most three plain `related_terms` per term, only where no typed
+  relation fits.
   Typical: a link to the hub term, or to the other side of a market.
 - `related_terms` is one-way. Store the link on the more specific term, pointing
   at the hub. Never store it on both, and never repeat a typed relation as a
@@ -22,7 +23,7 @@ summary: The tree-not-mesh method for term relations and the generic rules the r
   term under both `is_a` and `has_a` of the same target.
 
 ```yaml
-related_terms: [job-offer]      # max 2, one-way
+related_terms: [job-offer]      # max 3, one-way
 relations:
   is_a: [candidate-document]
   has_a: [candidate-cv]
@@ -44,7 +45,7 @@ relations:
 ## What discovery does with links
 
 `bg_discover` turns wikilinks into candidate `links`. `bg_draft` copies at most
-two per term and drops mirrored pairs. These are plain `related_terms`, a
+three per term and drops mirrored pairs. These are plain `related_terms`, a
 starting point. Typed `is_a` and `has_a` need a decision from a person or a
 review pass; the tools never guess them.
 

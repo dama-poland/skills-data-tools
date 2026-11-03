@@ -23,7 +23,7 @@ Sign-off by: the data steward. Record it in `gates/signoff-2.md` yourself.
 - [ ] Terms used by systems are `Approved`. Terms still `Draft` or `Under Review` are listed with an owner and a next step.
 - [ ] You moved each term to `Approved` yourself and recorded the date. An agent only writes `Draft`.
 - [ ] Term ids did not change. Renames changed the name only.
-- [ ] Relations follow the tree rule: one structural parent, at most two one-way related terms.
+- [ ] Relations follow the tree rule: one structural parent, at most three one-way related terms.
 - [ ] Exports (`terms.json`, `glossary.csv`) were rebuilt after the last change.
 
 ## Decision
