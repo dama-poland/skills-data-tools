@@ -15,7 +15,7 @@ Patch op:
     remove: {related_terms: [recruiter]}
     definition: "One or two sentences."
     sections: {What it is: "- bullet"}
-    level: b                 # optional; default b, use c for typo fixes
+    level: b                 # optional, a|b|c; default b, c for typo fixes
 
 Guards (set, add and remove alike): `id`, `created`, `created_by` are
 immutable; `version`, `version_date`, `changed_by` belong to the bump;
@@ -40,9 +40,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bg_adapters import SourceError, run_adapter
-from bg_core import (AGENT_STATUS, APPROVAL_FIELDS, CLASSIFICATIONS,
-                     as_list, bump_text, common_args,
-                     default_author, dump_yaml, highest_classification,
+from bg_core import (AGENT_STATUS, APPROVAL_FIELDS, BUMP_LEVELS,
+                     CLASSIFICATIONS, as_list, bump_text, check_level,
+                     common_args, default_author, dump_yaml,
+                     highest_classification,
                      load_config, load_profile, load_terms, load_yaml,
                      name_key, need_repo, normalize_classification,
                      read_term, set_definition, set_fm_field, set_section,
@@ -97,6 +98,7 @@ def check_guards(op, fm, allow_status):
 def apply_op(t, op, prof, author, allow_status):
   text = t['text']
   fm = t['fm']
+  check_level(op.get('level', 'b'))
   check_guards(op, fm, allow_status)
   for k, v in (op.get('set') or {}).items():
     if fm.get(k) != v:
@@ -157,7 +159,7 @@ def main():
   g.add_argument('--patch')
   g.add_argument('--from-sources', action='store_true')
   g.add_argument('--bump-only', help='comma list of term ids')
-  ap.add_argument('--level', choices=('a', 'b', 'c'), default='b')
+  ap.add_argument('--level', choices=BUMP_LEVELS, default='b')
   ap.add_argument('--author', default=None)
   ap.add_argument('--allow-status', action='store_true',
                   help='allow a status other than Draft; needs the '

@@ -31,7 +31,7 @@ diff, bumps the version, and leaves everything else byte for byte alone.
   definition: "One or two sentences."
   sections:
     What it is: "- Essential trait one"
-  level: b          # b default; c for typography or link fixes
+  level: b          # a, b or c; b default; c for typography or link fixes
   reason: free text, ignored by the tool
 ```
 
@@ -49,6 +49,7 @@ diff, bumps the version, and leaves everything else byte for byte alone.
 | `set` of `status` other than `Draft` | refused unless `--allow-status` and `DAMAPL_HUMAN_APPROVAL=1` |
 | profile `agent_status` other than `Draft` | refused before any change: the profile is a repo file and cannot grant approval |
 | `--allow-status` without `DAMAPL_HUMAN_APPROVAL=1` | refused before any change |
+| `level` other than `a`, `b` or `c` | refused, even when the op changes nothing |
 | no real change | reported as `unchanged`, no bump |
 
 `DAMAPL_HUMAN_APPROVAL=1` is a human-only signal. A person sets it in their

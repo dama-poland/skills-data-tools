@@ -30,6 +30,8 @@ REL_KEYS = ('is_a', 'has_a', 'values', 'realized_by', 'implemented_by')
 AGENT_STATUS = 'Draft'
 # Written by a human only; no script writes them.
 APPROVAL_FIELDS = ('approved_by', 'approved_on', 'approved_version')
+# a major, b minor (meaning), c patch (editorial).
+BUMP_LEVELS = ('a', 'b', 'c')
 # Lowest to highest. A source without a classification counts as
 # UNCLASSIFIED; an unknown value counts as the highest (fail-safe).
 CLASSIFICATIONS = ('public', 'internal', 'restricted')
@@ -338,7 +340,14 @@ def split_sentences(text):
   return [p for p in parts if p]
 
 
+def check_level(level):
+  if level not in BUMP_LEVELS:
+    raise ValueError('level %r is not one of %s' % (
+      level, ', '.join(BUMP_LEVELS)))
+
+
 def bump_version(version, level):
+  check_level(level)
   try:
     parts = [int(x) for x in str(version).split('.')]
   except ValueError:
@@ -386,6 +395,7 @@ def need_repo(args):
 def bump_text(text, level, author, prof=None, today_s=None):
   """Bump version (+version_date, changed_by) surgically. Approved terms
   edited at level a/b return to Under Review when the profile says so."""
+  check_level(level)
   fm_text, _ = split_term(text)
   fm = yaml.safe_load(fm_text) or {}
   if 'version' not in fm:

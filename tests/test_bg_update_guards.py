@@ -207,6 +207,23 @@ class BgUpdateGuards(unittest.TestCase):
     with open(path, encoding='utf-8') as fh:
       self.assertEqual(fh.read(), text)
 
+  def test_unknown_level_is_refused(self):
+    for level in ('z', 'B', '1', 'null'):
+      with self.subTest(level=level):
+        self.assert_refused('  set: {category: Sales}\n  level: %s\n'
+                            % level, word='level')
+    # refused even when the op would change nothing
+    self.assert_refused('  set: {status: Draft}\n  level: z\n',
+                        word='level')
+
+  def test_bump_version_refuses_unknown_level(self):
+    from bg_core import bump_version
+    self.assertEqual(bump_version('1.2.3', 'c'), '1.2.4')
+    for level in ('z', 'A', None, ''):
+      with self.subTest(level=level):
+        with self.assertRaises(ValueError):
+          bump_version('1.2.3', level)
+
   def test_draft_status_and_plain_fields_still_work(self):
     p = self.patch('  set: {status: Draft, category: Sales}\n'
                    '  add: {alternative_names: [Example Term]}\n')
