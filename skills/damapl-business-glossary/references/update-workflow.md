@@ -46,6 +46,9 @@ diff, bumps the version, and leaves everything else byte for byte alone.
 | `set`, `add` or `remove` of `version`, `version_date`, `changed_by` | refused: managed by the bump |
 | `set`, `add` or `remove` of `approved_by`, `approved_on`, `approved_version` | always refused: a human records approval |
 | `add` or `remove` of `status` | refused: status is a single value, change it with `set` |
+| `add` or `remove` of `confidentiality`, or `set` to a value other than `public`, `internal`, `restricted` | refused: a single known value, change it with `set` |
+| `set` of `confidentiality` lower than the current value | refused: only a dated human decision can declassify |
+| `remove` of `source_refs`, or `set` that drops an entry | refused: source refs are never removed; use `add` |
 | `set` of `status` other than `Draft` | refused unless `--allow-status` and `DAMAPL_HUMAN_APPROVAL=1` |
 | profile `agent_status` other than `Draft` | refused before any change: the profile is a repo file and cannot grant approval |
 | `--allow-status` without `DAMAPL_HUMAN_APPROVAL=1` | refused before any change |

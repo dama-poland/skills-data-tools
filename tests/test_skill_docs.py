@@ -1,8 +1,9 @@
 """Skill documentation and metadata: every description says when to use the
 skill, all SKILL.md files name the same owner, the decision template leaves
 the approver pending for a human, the glossary-entry template points inside
-its own skill, the kickoff names its own script folder and the second-brain
-spec no longer describes the retired two-skill layout.
+its own skill, the kickoff names its own script folder, the second-brain
+spec no longer describes the retired two-skill layout and the update
+workflow guards table lists every field bg_update protects.
 
 Run: python3 -m unittest tests.test_skill_docs
 """
@@ -63,6 +64,15 @@ class SkillDocs(unittest.TestCase):
         self.assertIn("six skills", text)
         self.assertIn("of the damapl-business-glossary skill", text)
         self.assertNotIn("`templates/glossary-entry.md`", text)
+
+    def test_update_workflow_guards_table_lists_classification_guards(self):
+        text = (ROOT / "skills" / "damapl-business-glossary" / "references" /
+                "update-workflow.md").read_text(encoding="utf-8")
+        table = text.split("## Guards", 1)[1].split("\n## ", 1)[0]
+        rows = [l for l in table.splitlines() if l.startswith("| ")]
+        for field in ("`confidentiality`", "`source_refs`"):
+            with self.subTest(field=field):
+                self.assertTrue(any(field in row for row in rows), rows)
 
 
 if __name__ == "__main__":
