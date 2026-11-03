@@ -11,6 +11,8 @@ terms are listed on stdout. Links to any term that is not public, archived
 or not, are dropped from the views.
 A finding on a public term whose message names the id or a name of a term
 that is not public is kept with its rule id and the details withheld.
+The free text of a public term (definition, sections) is exported as
+written: it comes from public sources, so a name in it is not redacted.
 
   bg_site.py --repo G [--out DIR] [--dry-run]
 """
