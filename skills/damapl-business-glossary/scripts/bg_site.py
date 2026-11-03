@@ -8,6 +8,8 @@ Only terms with `confidentiality: public` reach the site, terms.json,
 glossary.csv, a-z.md and validation.json; a missing value counts as not
 public. Excluded
 terms are listed on stdout, and links to them are dropped from the views.
+A finding on a public term whose message names the id or a name of a term
+that is not public is kept with its rule id and the details withheld.
 
   bg_site.py --repo G [--out DIR] [--dry-run]
 """
@@ -53,8 +55,48 @@ def csv_safe(value):
   return "'" + text if text.startswith(CSV_FORMULA_START) else text
 
 
+WITHHELD = 'details withheld: the finding involves a term that is not public'
+
+
 def is_public(t):
   return normalize_classification(t['fm'].get('confidentiality')) == 'public'
+
+
+def term_tokens(t):
+  """The id and every name of one term, lowercased."""
+  fm = t['fm']
+  out = {fm.get('id'), fm.get('name'), fm.get('name_pl'), t.get('title')}
+  for k in ('alternative_names', 'acronyms'):
+    out.update(as_list(fm.get(k)))
+  return {str(x).strip().lower() for x in out if x and str(x).strip()}
+
+
+def hidden_mention_re(terms):
+  """Regex for the id or a name of any term that is not public, or None.
+  A name that a public term also uses is not secret and does not match."""
+  public, hidden = set(), set()
+  for t in terms:
+    (public if is_public(t) else hidden).update(term_tokens(t))
+  words = sorted(hidden - public, key=len, reverse=True)
+  if not words:
+    return None
+  return re.compile(r'(?<![\w-])(?:%s)(?![\w-])'
+                    % '|'.join(map(re.escape, words)), re.IGNORECASE)
+
+
+def public_findings(viol, terms):
+  """Findings on public terms only; a message that names a term that is
+  not public is replaced by WITHHELD."""
+  public_ids = {t['fm'].get('id') for t in terms if is_public(t)}
+  mention = hidden_mention_re(terms)
+  out = []
+  for v in viol:
+    if v['term'] not in public_ids:
+      continue
+    if mention and mention.search(str(v['message'])):
+      v = dict(v, message=WITHHELD)
+    out.append(v)
+  return out
 
 
 def drop_hidden(x, hidden):
@@ -107,7 +149,7 @@ def main():
   cfg, prof, terms, viol, tiers = run(repo)
   out = os.path.abspath(a.out or os.path.join(repo, 'generated'))
   public_ids = {t['fm'].get('id') for t in terms if is_public(t)}
-  viol = [v for v in viol if v['term'] in public_ids]
+  viol = public_findings(viol, terms)
   tiers = {i: tr for i, tr in tiers.items() if i in public_ids}
   issues = {}
   for v in viol:

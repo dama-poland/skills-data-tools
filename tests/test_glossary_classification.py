@@ -124,6 +124,77 @@ class Classification(unittest.TestCase):
     for v in data['violations']:
       self.assertIn(v['term'], ('alpha-widget', 'epsilon-signal'))
 
+  def edit_term(self, tid, old, new):
+    path = os.path.join(self.repo, 'terms', tid + '.md')
+    with open(path, encoding='utf-8') as fh:
+      text = fh.read()
+    self.assertIn(old, text)
+    with open(path, 'w', encoding='utf-8') as fh:
+      fh.write(text.replace(old, new, 1))
+    return path, text
+
+  def test_site_issues_do_not_name_hidden_terms(self):
+    # aaa-hidden (restricted) duplicates the public name Alpha Widget, and
+    # an is_a cycle runs through restricted beta-ledger and closes on the
+    # public epsilon-signal: both MUST messages name a hidden id.
+    hidden = os.path.join(self.repo, 'terms', 'aaa-hidden.md')
+    beta = self.term('beta-ledger')['text']
+    with open(hidden, 'w', encoding='utf-8') as fh:
+      fh.write(beta.replace('id: beta-ledger', 'id: aaa-hidden')
+               .replace('name: Beta Ledger', 'name: Alpha Widget'))
+    saved = [self.edit_term(tid, 'relations: {}\n',
+                            'relations:\n  is_a: [%s]\n' % parent)
+             for tid, parent in (('alpha-widget', 'beta-ledger'),
+                                 ('beta-ledger', 'epsilon-signal'),
+                                 ('epsilon-signal', 'alpha-widget'))]
+    try:
+      out = os.path.join(self.tmp, 'out-issues')
+      run('bg_site.py', '--repo', self.repo, '--out', out)
+      data = json.load(open(os.path.join(out, 'terms.json'),
+                            encoding='utf-8'))
+      issues = {t['id']: t['issues'] for t in data['terms']}
+      self.assertTrue(any('NAME-04' in x and 'withheld' in x
+                          for x in issues['alpha-widget']), issues)
+      self.assertTrue(any('REL-07' in x and 'withheld' in x
+                          for x in issues['epsilon-signal']), issues)
+      for rel in ('terms.json', 'site/index.html', 'validation.json'):
+        with open(os.path.join(out, rel), encoding='utf-8') as fh:
+          text = fh.read()
+        for word in ('aaa-hidden', 'beta-ledger', 'Beta Ledger'):
+          self.assertNotIn(word, text, '%s leaks into %s' % (word, rel))
+    finally:
+      os.remove(hidden)
+      for path, text in saved:
+        with open(path, 'w', encoding='utf-8') as fh:
+          fh.write(text)
+
+  def test_public_findings_withholds_hidden_names_and_ids(self):
+    from bg_site import public_findings
+    terms = [
+      {'fm': {'id': 'alpha-widget', 'name': 'Alpha Widget',
+              'confidentiality': 'public'}, 'title': 'Alpha Widget'},
+      {'fm': {'id': 'beta-ledger', 'name': 'Beta Ledger',
+              'alternative_names': ['Secret Book'],
+              'confidentiality': 'restricted'}, 'title': 'Beta Ledger'},
+    ]
+    viol = [
+      {'term': 'alpha-widget', 'rule': 'R-1', 'level': 'MUST',
+       'message': 'clashes with beta ledger'},
+      {'term': 'alpha-widget', 'rule': 'R-2', 'level': 'MUST',
+       'message': 'see the Secret Book entry'},
+      {'term': 'alpha-widget', 'rule': 'R-3', 'level': 'MUST',
+       'message': "duplicate name 'Alpha Widget' (also beta-ledger)"},
+      {'term': 'alpha-widget', 'rule': 'R-4', 'level': 'MUST',
+       'message': 'link to beta-ledgers-x is fine'},
+      {'term': 'beta-ledger', 'rule': 'R-5', 'level': 'MUST',
+       'message': 'hidden term finding'},
+    ]
+    got = public_findings(viol, terms)
+    self.assertEqual([v['rule'] for v in got], ['R-1', 'R-2', 'R-3', 'R-4'])
+    for v in got[:3]:
+      self.assertIn('withheld', v['message'])
+    self.assertEqual(got[3]['message'], 'link to beta-ledgers-x is fine')
+
   def test_site_prints_what_was_excluded(self):
     out = self.site.stdout
     self.assertIn('excluded', out)
