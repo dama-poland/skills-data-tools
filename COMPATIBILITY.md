@@ -1,6 +1,6 @@
 ---
 title: "Compatibility"
-summary: "Table of agents and models that ran the smoke test on the skills collection, with date, result and who ran it; empty until the first real run."
+summary: "Table of agents and models that ran the smoke test on the skills collection, with date, result and who ran it."
 updated: "2026-11-03"
 review_by: "2027-01-31"
 owner: "DAMA Poland maintainers"
@@ -14,6 +14,9 @@ The skills are built to work with any agent that can read files and run a comman
 
 | Agent | Agent version | Model | Local or hosted | Date | Result | Run by |
 |---|---|---|---|---|---|---|
+| pi | 1.5.0 | anthropic/claude-haiku-4-5 | hosted | 2026-11-03 | pass | DAMA Poland maintainers (pi agent) |
+| pi | 1.5.0 | anthropic/claude-haiku-4-5 | hosted | 2026-11-03 | fail: Q2 Sources had no retrieval date | DAMA Poland maintainers (pi agent) |
+| pi | 1.5.0 | anthropic/claude-sonnet-5-5 | hosted | 2026-11-03 | pass | DAMA Poland maintainers (pi agent) |
 
 ## Rules for this table
 
