@@ -27,7 +27,9 @@ DAMAPL_HUMAN_APPROVAL=1. An agent never sets it. A profile whose
 `confidentiality` changes only through `set` and never goes down
 (public < internal < restricted); `source_refs` entries are never removed.
 --from-sources proposals raise confidentiality and add the source ref when
-a differing source is classified higher than the term.
+a differing source is classified higher than the term. A term whose
+frontmatter cannot be read is refused (fix its YAML by hand first), and so
+is a patch op without an id.
 
   bg_update.py --repo G --patch p.yaml --dry-run
 """
@@ -172,7 +174,12 @@ def main():
              '%s, so a profile cannot raise it' % (prof['agent_status'],
                                                    AGENT_STATUS))
   terms = load_terms(repo, cfg)
-  by_id = {t['fm'].get('id'): t for t in terms}
+  # Frontmatter that does not parse has lost its confidentiality and
+  # source_refs, so no guard can protect it: such a term is never changed.
+  unreadable = {os.path.basename(t['path'])[:-3]: t['fm']['_parse_error']
+                for t in terms if '_parse_error' in t['fm']}
+  terms = [t for t in terms if '_parse_error' not in t['fm']]
+  by_id = {t['fm'].get('id'): t for t in terms if t['fm'].get('id')}
   author = a.author or default_author(cfg)
 
   if a.from_sources:
@@ -193,7 +200,17 @@ def main():
       ops = [ops] if ops else []
   errors = changed = 0
   for op in ops:
-    t = by_id.get(op.get('id'))
+    if not op.get('id'):
+      print('ERROR patch op without id: %r' % (op,))
+      errors += 1
+      continue
+    if op['id'] in unreadable:
+      print('ERROR %s: frontmatter cannot be read (%s); fix the YAML by '
+            'hand, then run bg_validate.py' % (
+              op['id'], ' '.join(str(unreadable[op['id']]).split())))
+      errors += 1
+      continue
+    t = by_id.get(op['id'])
     if not t:
       print('ERROR unknown id %r (ids are never created here)' % op.get('id'))
       errors += 1

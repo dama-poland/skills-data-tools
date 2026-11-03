@@ -40,6 +40,8 @@ diff, bumps the version, and leaves everything else byte for byte alone.
 | Guard | Behavior |
 |---|---|
 | unknown id | error; update never creates terms |
+| patch op without `id` | error |
+| term whose frontmatter cannot be read | refused: fix the YAML by hand, then run `bg_validate.py` |
 | `set`, `add` or `remove` of `id`, `created`, `created_by` | refused: ids and creation facts never change |
 | `set`, `add` or `remove` of `version`, `version_date`, `changed_by` | refused: managed by the bump |
 | `set`, `add` or `remove` of `approved_by`, `approved_on`, `approved_version` | always refused: a human records approval |

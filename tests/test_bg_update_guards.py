@@ -167,6 +167,46 @@ class BgUpdateGuards(unittest.TestCase):
     with open(self.path, encoding='utf-8') as fh:
       self.assertEqual(fh.read(), TERM)
 
+  def write_broken(self):
+    path = os.path.join(self.repo, 'terms', 'broken-term.md')
+    text = ('---\nid: broken-term\nname: Broken Term\n'
+            'confidentiality: restricted\nstatus: Draft\n'
+            "version: '1.0.0'\nbad: [unclosed\n---\n\n# Broken Term\n\n"
+            'A synthetic term whose frontmatter does not parse.\n')
+    with open(path, 'w', encoding='utf-8') as fh:
+      fh.write(text)
+    return path, text
+
+  def run_update(self, *args):
+    return subprocess.run(
+      [sys.executable, os.path.join(SCRIPTS, 'bg_update.py'),
+       '--repo', self.repo] + list(args),
+      capture_output=True, text=True, env=human_env())
+
+  def test_term_with_unreadable_frontmatter_is_refused(self):
+    path, text = self.write_broken()
+    pfile = os.path.join(self.tmp, 'broken.yaml')
+    for body in ('- id: broken-term\n  set: {confidentiality: internal}\n',
+                 '- id: broken-term\n  set: {category: Sales}\n',
+                 '- set: {confidentiality: internal}\n'):
+      with self.subTest(body=body):
+        with open(pfile, 'w', encoding='utf-8') as fh:
+          fh.write(body)
+        p = self.run_update('--patch', pfile)
+        out = p.stdout + p.stderr
+        self.assertNotEqual(p.returncode, 0, out)
+        self.assertNotIn('Traceback', out)
+        self.assertIn('ERROR', out)
+        with open(path, encoding='utf-8') as fh:
+          self.assertEqual(fh.read(), text)
+    p = self.run_update('--bump-only', 'broken-term')
+    out = p.stdout + p.stderr
+    self.assertNotEqual(p.returncode, 0, out)
+    self.assertNotIn('Traceback', out)
+    self.assertIn('frontmatter', out)
+    with open(path, encoding='utf-8') as fh:
+      self.assertEqual(fh.read(), text)
+
   def test_draft_status_and_plain_fields_still_work(self):
     p = self.patch('  set: {status: Draft, category: Sales}\n'
                    '  add: {alternative_names: [Example Term]}\n')
