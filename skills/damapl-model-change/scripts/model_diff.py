@@ -5,8 +5,9 @@ Usage:
     model_diff.py OLD NEW [--out FILE]
 
 Reports changes in frontmatter fields, in `concepts:` entries (added, removed,
-changed meaning, status or source, keyed by term) and in the body: rows of
-Markdown tables (keyed by their first two cells) and other body lines.
+changed meaning, status or source, keyed by term; a repeated term is compared entry by entry) and in the body:
+rows of Markdown tables (keyed by their first two cells; the header row of any
+table is skipped; repeated keys are compared row by row) and other body lines.
 Output is deterministic Markdown; without --out it goes to stdout.
 """
 
@@ -17,7 +18,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from arch_common import split_note  # noqa: E402
+from arch_common import NoteError, split_note  # noqa: E402
 from map_build import escape_cell  # noqa: E402
 
 SKIP_FIELDS = {"concepts"}
@@ -39,43 +40,65 @@ def field_changes(old: dict, new: dict) -> list[list[str]]:
     return rows
 
 
-def concept_map(fm: dict) -> dict[str, dict]:
-    return {str(e["term"]): e for e in fm.get("concepts") or []}
+def concept_map(fm: dict) -> dict[str, list[dict]]:
+    mapped: dict[str, list[dict]] = {}
+    for entry in fm.get("concepts") or []:
+        mapped.setdefault(str(entry["term"]), []).append(entry)
+    return mapped
+
+
+def describe(entry: dict) -> str:
+    return f"{fmt(entry.get('meaning'))} [{fmt(entry.get('status'))}, {fmt(entry.get('source'))}]"
 
 
 def concept_changes(old: dict, new: dict) -> list[list[str]]:
     a, b = concept_map(old), concept_map(new)
     rows = []
     for term in sorted(set(a) | set(b)):
-        if term not in a:
-            e = b[term]
-            rows.append([term, "added", "-", f"{fmt(e.get('meaning'))} [{fmt(e.get('status'))}, {fmt(e.get('source'))}]"])
-        elif term not in b:
-            e = a[term]
-            rows.append([term, "removed", f"{fmt(e.get('meaning'))} [{fmt(e.get('status'))}, {fmt(e.get('source'))}]", "-"])
-        else:
-            for field in ("meaning", "status", "source"):
-                if fmt(a[term].get(field)) != fmt(b[term].get(field)):
-                    rows.append([term, f"{field} changed", fmt(a[term].get(field)), fmt(b[term].get(field))])
+        old_entries, new_entries = a.get(term, []), b.get(term, [])
+        for i in range(max(len(old_entries), len(new_entries))):
+            if i >= len(old_entries):
+                rows.append([term, "added", "-", describe(new_entries[i])])
+            elif i >= len(new_entries):
+                rows.append([term, "removed", describe(old_entries[i]), "-"])
+            else:
+                for field in ("meaning", "status", "source"):
+                    before, after = old_entries[i].get(field), new_entries[i].get(field)
+                    if fmt(before) != fmt(after):
+                        rows.append([term, f"{field} changed", fmt(before), fmt(after)])
     return rows
 
 
-def split_body(body: str) -> tuple[dict[str, str], list[str]]:
-    """Table rows keyed by first two cells, and remaining non-heading lines."""
-    tables: dict[str, str] = {}
+def split_body(body: str) -> tuple[dict[str, list[str]], list[str]]:
+    """Table rows keyed by first two cells, and remaining non-heading lines.
+
+    The header row of a table is the row followed by a separator row; it is
+    skipped whatever its column names are. A key that repeats keeps every row.
+    """
+    tables: dict[str, list[str]] = {}
     prose: list[str] = []
-    for line in body.splitlines():
-        line = line.strip()
+    lines = [line.strip() for line in body.splitlines()]
+    for i, line in enumerate(lines):
         if not line or line.startswith("#"):
             continue
-        if line.startswith("|"):
-            cells = [c.strip() for c in line.strip("|").split("|")]
-            if all(set(c) <= set("-: ") for c in cells) or cells[:2] == ["Entity", "Field"]:
-                continue
-            tables[" / ".join(cells[:2])] = " | ".join(cells[2:])
-        else:
+        if not line.startswith("|"):
             prose.append(line)
+            continue
+        cells = split_cells(line)
+        if is_separator(cells):
+            continue
+        if i + 1 < len(lines) and lines[i + 1].startswith("|") and is_separator(split_cells(lines[i + 1])):
+            continue
+        tables.setdefault(" / ".join(cells[:2]), []).append(" | ".join(cells[2:]))
     return tables, prose
+
+
+def split_cells(line: str) -> list[str]:
+    return [c.strip() for c in line.strip("|").split("|")]
+
+
+def is_separator(cells: list[str]) -> bool:
+    return all(set(c) <= set("-: ") for c in cells)
 
 
 def body_changes(old_body: str, new_body: str) -> tuple[list[list[str]], list[list[str]]]:
@@ -83,12 +106,14 @@ def body_changes(old_body: str, new_body: str) -> tuple[list[list[str]], list[li
     tb, pb = split_body(new_body)
     rows = []
     for key in sorted(set(ta) | set(tb)):
-        if key not in ta:
-            rows.append([key, "added", "-", tb[key]])
-        elif key not in tb:
-            rows.append([key, "removed", ta[key], "-"])
-        elif ta[key] != tb[key]:
-            rows.append([key, "changed", ta[key], tb[key]])
+        old_rows, new_rows = ta.get(key, []), tb.get(key, [])
+        for i in range(max(len(old_rows), len(new_rows))):
+            if i >= len(old_rows):
+                rows.append([key, "added", "-", new_rows[i]])
+            elif i >= len(new_rows):
+                rows.append([key, "removed", old_rows[i], "-"])
+            elif old_rows[i] != new_rows[i]:
+                rows.append([key, "changed", old_rows[i], new_rows[i]])
     lines = [["removed", x] for x in pa if x not in pb] + [["added", x] for x in pb if x not in pa]
     return rows, lines
 
@@ -137,7 +162,11 @@ def main(argv=None) -> int:
         if not path.is_file():
             print(f"error: note not found: {path}", file=sys.stderr)
             return 2
-    text = render(args.old, args.new)
+    try:
+        text = render(args.old, args.new)
+    except NoteError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     if args.out is None:
         sys.stdout.write(text)
         return 0

@@ -19,7 +19,7 @@ from itertools import combinations
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from arch_common import approved_links, current_systems, load_systems  # noqa: E402
+from arch_common import NoteError, approved_links, current_systems, load_systems  # noqa: E402
 
 DEFAULT_OUT = Path("generated/architecture/map.md")
 
@@ -75,7 +75,11 @@ def main(argv=None) -> int:
     if not args.systems.is_dir():
         print(f"error: systems directory not found: {args.systems}", file=sys.stderr)
         return 2
-    notes = current_systems(load_systems(args.systems), args.include_superseded)
+    try:
+        notes = current_systems(load_systems(args.systems), args.include_superseded)
+    except NoteError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     text = render(approved_links(notes))
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(text, encoding="utf-8")

@@ -18,16 +18,41 @@ class NoteError(ValueError):
     """Raised when a note has missing or malformed frontmatter."""
 
 
+def read_text(path: Path) -> str:
+    """Read a note as UTF-8; a decoding failure names the file."""
+    try:
+        return Path(path).read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise NoteError(f"not valid UTF-8 ({exc.reason} at byte {exc.start}): {path}") from exc
+
+
+def check_concepts(data: dict, path: Path) -> None:
+    concepts = data.get("concepts")
+    if concepts is None:
+        return
+    if not isinstance(concepts, list):
+        raise NoteError(f"concepts is not a list: {path}")
+    for number, entry in enumerate(concepts, 1):
+        if not isinstance(entry, dict):
+            raise NoteError(f"concepts entry {number} is not a mapping: {path}")
+        if entry.get("term") in (None, ""):
+            raise NoteError(f"concepts entry {number} has no term: {path}")
+
+
 def parse_frontmatter(path: Path) -> dict:
-    text = path.read_text(encoding="utf-8")
+    text = read_text(path)
     if not text.startswith("---\n"):
         raise NoteError(f"missing frontmatter: {path}")
     end = text.find("\n---\n", 4)
     if end < 0:
         raise NoteError(f"unclosed frontmatter: {path}")
-    data = yaml.safe_load(text[4:end])
+    try:
+        data = yaml.safe_load(text[4:end])
+    except yaml.YAMLError as exc:
+        raise NoteError(f"frontmatter is not valid YAML ({exc.__class__.__name__}): {path}") from exc
     if not isinstance(data, dict):
         raise NoteError(f"frontmatter is not a mapping: {path}")
+    check_concepts(data, path)
     return data
 
 
@@ -84,7 +109,7 @@ def load_glossary(glossary_dir: Path) -> dict[str, dict]:
 
 def split_note(path: Path) -> tuple[dict, str]:
     """Return (frontmatter, body) of a note."""
-    text = Path(path).read_text(encoding="utf-8")
+    text = read_text(path)
     fm = parse_frontmatter(Path(path))
     end = text.find("\n---\n", 4)
     return fm, text[end + 5:]

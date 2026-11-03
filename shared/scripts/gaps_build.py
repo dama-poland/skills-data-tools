@@ -28,7 +28,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from arch_common import (  # noqa: E402
-    approved_links, current_systems, load_glossary, load_systems, system_name,
+    NoteError, approved_links, current_systems, load_glossary, load_systems,
+    system_name,
 )
 from map_build import edges, escape_cell  # noqa: E402
 
@@ -55,6 +56,15 @@ def name_keys(fm: dict) -> set[str]:
     return {str(n).strip().casefold() for n in names if n}
 
 
+def homonym_ids(fm: dict) -> set[str]:
+    """Ids in `homonym_of`, whether written as one string or as a list."""
+    value = fm.get("homonym_of")
+    if value is None:
+        return set()
+    items = value if isinstance(value, (list, tuple)) else [value]
+    return {str(i).strip() for i in items if i}
+
+
 def homonym_pairs(glossary: dict[str, dict], used: set[str]) -> dict[tuple[str, str], list[str]]:
     """Pairs of used term ids with the reasons they are homonym candidates."""
     reasons: dict[tuple[str, str], list[str]] = {}
@@ -64,7 +74,7 @@ def homonym_pairs(glossary: dict[str, dict], used: set[str]) -> dict[tuple[str, 
         shared = sorted(name_keys(glossary[a]) & name_keys(glossary[b]))
         if shared:
             why.append("shared name " + ", ".join(f"'{s}'" for s in shared))
-        linked = b in (glossary[a].get("homonym_of") or []) or a in (glossary[b].get("homonym_of") or [])
+        linked = b in homonym_ids(glossary[a]) or a in homonym_ids(glossary[b])
         if linked:
             why.append("homonym_of link")
         if why:
@@ -211,8 +221,13 @@ def main(argv=None) -> int:
         if not path.is_dir():
             print(f"error: {label} directory not found: {path}", file=sys.stderr)
             return 2
-    notes = current_systems(load_systems(args.systems), args.include_superseded)
-    text = render(notes, load_glossary(args.glossary))
+    try:
+        notes = current_systems(load_systems(args.systems), args.include_superseded)
+        glossary = load_glossary(args.glossary)
+    except NoteError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    text = render(notes, glossary)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(text, encoding="utf-8")
     print(f"wrote {args.out}")

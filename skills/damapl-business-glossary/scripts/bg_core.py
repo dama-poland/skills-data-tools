@@ -333,7 +333,13 @@ def split_sentences(text):
 
 
 def bump_version(version, level):
-  a, b, c = (int(x) for x in str(version).split('.'))
+  try:
+    parts = [int(x) for x in str(version).split('.')]
+  except ValueError:
+    parts = []
+  if not 1 <= len(parts) <= 3:
+    raise ValueError("version %r is not numeric like 1.2.3" % (version,))
+  a, b, c = parts + [0] * (3 - len(parts))
   if level == 'a':
     return '%d.0.0' % (a + 1)
   if level == 'b':
