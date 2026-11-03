@@ -18,7 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bg_adapters import (ADAPTERS, KIND_HELP, SourceError, detect_kind,
-                         run_adapter)
+                         is_boilerplate, is_generic_name, run_adapter)
 from bg_core import (dump_yaml, load_config, load_terms, need_repo, slugify,
                      common_args, write_text, as_list, name_hash, name_key,
                      highest_classification, source_ref_of, term_name_keys)
@@ -156,6 +156,9 @@ def main():
   for m in cands:
     n = mentions(m['name'], corpus)
     m['score'] = n + 2 * len(m['sources']) + (3 if m['definition'] else 0)
+    if is_generic_name(m['name']) or (
+        m['definition'] and is_boilerplate(m['definition'])):
+      m['score'] -= 10   # section headings and page furniture rank last
     m['exists'] = m['id'] in existing
     m['accept'] = None
   cands.sort(key=lambda m: (-m['score'], m['id']))

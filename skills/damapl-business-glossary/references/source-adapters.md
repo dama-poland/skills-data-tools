@@ -12,14 +12,29 @@ summary: The source adapters of the business-glossary skill, what each reads, th
 | Kind | Reads | Extra behavior |
 |---|---|---|
 | `obsidian` | vault folder, `.md` notes | frontmatter `aliases`, `type`, `tags`; `[[wikilinks]]` become candidate links; `.obsidian` and `.trash` skipped |
-| `folder` | any folder of `.md`, `.txt`, `.rst` | fallback adapter; also reads `Term: definition` lines and glossary tables |
+| `folder` | any folder of `.md`, `.txt`, `.rst` | fallback adapter; also reads `**Term**: definition` lines and glossary tables |
 | `csv`, `tsv` | columns `term` or `name`, `definition`; optional `synonyms`, `type`, `name_pl`, `definition_pl` | delimiter detected |
 | `xlsx` | first sheet, same columns as CSV | stdlib only, no formulas |
-| `confluence` | HTML export folder | page title is the term, first paragraph the definition |
-| `docx` | Word documents | `Term: definition` lines plus the first heading as one candidate |
+| `confluence` | HTML export folder | first h1 (else `<title>`, first heading, file name) is the term; the first prose paragraph after it is the definition; navigation, breadcrumbs and page metadata are skipped |
+| `docx` | Word documents | `Term: definition` lines plus the first title or heading as one candidate; heading paragraphs are never definitions |
 
 `obsidian` and `folder` treat a note whose path or title matches
 `glossary|terms|definitions` as a term list, not as one term.
+
+## What is not a definition
+
+- Heading lines, navigation (link-only lines, breadcrumbs such as
+  `Home > Glossary`), page metadata (`Created by`, `Last updated`) and
+  placeholders (`TODO`) are skipped when the first paragraph is chosen.
+- A page with several h1 headings is one candidate named after the first h1;
+  later h1 headings are section headings.
+- In a glossary note a plain `Term: text` line is a term only as a list item
+  or inside a block of two or more such lines; `**Term**: text` always is.
+  Label words (`Note`, `Status`, `Owner`, `Author`, `Date`...) are never
+  terms. Frontmatter and code fences are not scanned.
+- `bg_discover` ranks section headings (`Overview`, `Introduction`,
+  `Table of contents`...) and candidates whose definition is boilerplate
+  10 points lower.
 
 ## Encoding
 

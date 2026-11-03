@@ -19,6 +19,8 @@ import xml.etree.ElementTree as ET
 
 import yaml
 
+from bg_core import name_key
+
 TEXT_EXT = ('.md', '.markdown', '.txt', '.rst')
 WIKILINK = re.compile(r'\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]*)?\]\]')
 DEF_LINE = re.compile(
@@ -26,6 +28,32 @@ DEF_LINE = re.compile(
   r'\s*(?::|\u2013|\u2014| - )\s+(.{15,400})$')
 SKIP_DIRS = {'.git', '.obsidian', '.trash', 'node_modules', '__pycache__',
              '.graphify', '.glossary'}
+# Labels that open a `Label: text` line but are not terms.
+LABELS = frozenset((
+  'note notes status owner author date source sources tags tag type '
+  'version created updated modified reviewed example examples see todo '
+  'warning tip summary description purpose context scope question answer '
+  'reference references link links contact priority department team '
+  'title abstract caveat important remark comment comments reviewer '
+  'approver revision changelog history').split()) | {'see also'}
+# Headings and page furniture that name a section, not a concept.
+GENERIC_NAMES = frozenset((
+  'overview', 'introduction', 'summary', 'contents', 'table of contents',
+  'references', 'appendix', 'notes', 'navigation', 'changelog', 'history',
+  'agenda', 'background', 'description', 'resources', 'related pages',
+  'see also', 'faq', 'links', 'glossary', 'terms', 'definitions'))
+BOILERPLATE = re.compile(
+  r'(?i)^(table of contents|contents\b|on this page|skip to |go to (the )?'
+  r'(start|end) of|created by|last (modified|updated|edited|reviewed)|'
+  r'modified by|updated by|powered by|page (id|history|tree|info)\b|'
+  r'breadcrumbs?\b|back to\b|navigation\b|related (pages|articles|content)'
+  r'|see also\b|labels?:|attachments?\b|no labels|\d+ comments?|was this '
+  r'(page|article) helpful|copyright|all rights reserved|todo\b|tbd\b|'
+  r'lorem ipsum|home\b.{0,3}$)')
+LINKS_ONLY = re.compile(
+  r'\[\[.*?\]\]|!?\[[^\]]*\]\([^)]*\)|https?://\S+')
+CRUMB_SEP = re.compile(r'\s(?:>|\u00bb|\u203a|\||/)\s|\s?\u00bb\s?')
+HEADING_STYLE = re.compile(r'(?i)^(heading|title|nag[\u0142l]owek)')
 TYPE_HINTS = (
   ('Role', r'\b(role|owner|manager|lead|steward|officer|persona)\b'),
   ('Event', r'\b(event|happened|occurs|when a|triggered)\b'),
@@ -73,6 +101,24 @@ def guess_type(text):
   return 'Concept'
 
 
+def is_boilerplate(text):
+  """True for navigation, breadcrumbs, page metadata and placeholders:
+  text that must never be taken as a definition."""
+  t = ' '.join(str(text).split())
+  if not t or BOILERPLATE.match(re.sub(r'^[^\w\[]+', '', t)):
+    return True
+  if not re.search(r'\w{2,}', re.sub(r'\[\[.*?\]\]', '', LINKS_ONLY.sub(
+      ' ', t)).replace('|', ' ')):
+    return True  # nothing left once the links are taken out
+  if len(CRUMB_SEP.findall(t)) >= 2 and not re.search(r'[.!?]\s*$', t):
+    return True
+  return False
+
+
+def is_generic_name(name):
+  return name_key(name) in GENERIC_NAMES
+
+
 def title_from_filename(path):
   b = os.path.splitext(os.path.basename(path))[0]
   b = re.sub(r'^\d{4}-\d{2}-\d{2}[ _-]*', '', b)
@@ -80,13 +126,20 @@ def title_from_filename(path):
 
 
 def first_paragraph(body):
+  """First prose paragraph. Heading lines inside a paragraph are dropped,
+  navigation and boilerplate paragraphs are skipped."""
+  body = re.sub(r'```.*?```', '', body, flags=re.S)
   for para in re.split(r'\n\s*\n', body.strip()):
-    p = para.strip()
-    if not p or p.startswith(('#', '```', '|', '---', '![', '>')):
+    p = '\n'.join(x for x in para.split('\n')
+                  if not x.lstrip().startswith('#')).strip()
+    if not p or p.startswith(('|', '---', '![', '>')):
       continue
     if re.match(r'^[-*]\s', p) or p.startswith('<'):
       continue
-    return re.sub(r'\s+', ' ', p)
+    p = re.sub(r'\s+', ' ', p)
+    if is_boilerplate(p):
+      continue
+    return p
   return ''
 
 
@@ -159,25 +212,60 @@ def a_obsidian(path, opts):
     yield from inline_defs(rel, text, 'obsidian', gl)
 
 
+def _prose_lines(text):
+  """Lines of a note without its frontmatter and fenced code blocks."""
+  body = _split_fm(text)[1] if text.startswith('---\n') else text
+  out, fence = [], False
+  for ln in body.split('\n'):
+    if ln.lstrip().startswith('```'):
+      fence = not fence
+      out.append('')
+    else:
+      out.append('' if fence else ln)
+  return out
+
+
+def _def_match(lines, i):
+  if not 0 <= i < len(lines):
+    return None
+  m = DEF_LINE.match(lines[i])
+  return m if m and m.group(1).strip().lower() not in LABELS else None
+
+
+TABLE_SEP = re.compile(r'^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$')
+TABLE_HEADS = frozenset((
+  'term', 'name', 'concept', 'word', 'abbreviation', 'acronym', 'title',
+  'termin', 'pojęcie', 'nazwa'))
+
+
 def inline_defs(rel, text, kind, force):
   """`**Term**: definition` lines and glossary table rows inside a note.
-  Plain `Term: text` lines only count in glossary-like notes (`force`).
-  Each candidate inherits the note's confidentiality and source_id."""
+  In glossary-like notes (`force`) a plain `Term: text` line also counts,
+  but only as a list item or inside a block of two or more such lines, so
+  a lone `Note: ...` sentence is not a term; label words (Note, Status,
+  Owner...) never are. Frontmatter and code fences are not scanned. Each
+  candidate inherits the note's confidentiality and source_id."""
   fm = _split_fm(text)[0]
   meta = {'confidentiality': fm.get('confidentiality'),
           'source_id': fm.get('source_id')}
-  for ln in text.split('\n'):
-    m = DEF_LINE.match(ln)
-    if m and (force or '**' in ln):
-      yield dict(meta, **{
-        'name': m.group(1).strip(), 'definition': m.group(2).strip(),
-        'source': kind, 'aliases': [], 'links': [], 'tags': [],
-        'bullets': [], 'type_hint': guess_type(m.group(2)),
-        'source_ref': rel, 'text': ''})
+  lines = _prose_lines(text)
+  for i, ln in enumerate(lines):
+    m = _def_match(lines, i)
+    if m:
+      bold = '**' in ln or '__' in ln
+      listed = re.match(r'\s*[-*]\s', ln)
+      block = _def_match(lines, i - 1) or _def_match(lines, i + 1)
+      if bold or (force and (listed or block)):
+        yield dict(meta, **{
+          'name': m.group(1).strip(), 'definition': m.group(2).strip(),
+          'source': kind, 'aliases': [], 'links': [], 'tags': [],
+          'bullets': [], 'type_hint': guess_type(m.group(2)),
+          'source_ref': rel, 'text': ''})
     row = [x.strip() for x in ln.strip().strip('|').split('|')]
+    nxt = lines[i + 1] if i + 1 < len(lines) else ''
     if ln.strip().startswith('|') and len(row) >= 2 and force and \
         row[0] and not set(row[0]) <= set('-: ') and \
-        row[0].lower() not in ('term', 'name'):
+        row[0].lower() not in TABLE_HEADS and not TABLE_SEP.match(nxt):
       yield dict(meta, **{
         'name': row[0].strip('*_ '), 'definition': row[1],
         'source': kind, 'aliases': [], 'links': [], 'tags': [],
@@ -285,43 +373,103 @@ def a_xlsx(path, opts):
         yield c
 
 
-class _Text(html.parser.HTMLParser):
+class _Page(html.parser.HTMLParser):
+  """Text of an HTML page split into headings and paragraphs. Navigation,
+  breadcrumbs, page metadata, scripts and styles are dropped. Each
+  paragraph records how many h1 headings came before it."""
+  VOID = frozenset(('br', 'hr', 'img', 'input', 'link', 'meta', 'col',
+                    'area', 'base', 'source', 'wbr'))
+  DROP_TAGS = frozenset(('script', 'style', 'nav', 'header', 'footer',
+                         'aside', 'noscript', 'template'))
+  DROP_ATTR = re.compile(r'(?i)breadcrumb|sidebar|navigation|\bnav\b|'
+                         r'footer|metadata|\btoc\b|page-labels|comment')
+  BLOCKS = frozenset(('p', 'li', 'td', 'th', 'tr', 'div', 'section', 'ul',
+                      'ol', 'table', 'blockquote', 'pre', 'article'))
+  HEADS = ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
+
   def __init__(self):
     super().__init__()
-    self.title, self.paras, self.cur, self.tag = '', [], [], None
-    self.h1 = ''
+    self.title, self.headings, self.paras = '', [], []
+    self.stack, self.cur, self.head = [], [], None
+    self.h1_seen, self.in_title = 0, False
+
+  def _dropped(self):
+    return any(d for _, d in self.stack)
+
+  def _flush(self):
+    text = ' '.join(''.join(self.cur).split())
+    self.cur = []
+    if text and not self._dropped():
+      self.paras.append((self.h1_seen, text))
 
   def handle_starttag(self, tag, attrs):
-    self.tag = tag
+    if tag in self.VOID:
+      return
+    a = dict(attrs)
+    drop = tag in self.DROP_TAGS or bool(self.DROP_ATTR.search(
+      '%s %s' % (a.get('class') or '', a.get('id') or '')))
+    if tag in self.BLOCKS or tag in self.HEADS:
+      self._flush()
+    self.stack.append((tag, drop))
+    if tag == 'title':
+      self.in_title = True
+    elif tag in self.HEADS and not self._dropped():
+      self.head = (int(tag[1]), [])
+      if tag == 'h1':
+        self.h1_seen += 1
 
   def handle_endtag(self, tag):
-    if tag in ('p', 'li') and self.cur:
-      self.paras.append(' '.join(''.join(self.cur).split()))
-      self.cur = []
-    self.tag = None
+    if tag in self.VOID or not any(t == tag for t, _ in self.stack):
+      return
+    if tag in self.BLOCKS and self.head is None:
+      self._flush()
+    while self.stack:
+      t, _ = self.stack.pop()
+      if t == tag:
+        break
+    if tag == 'title':
+      self.in_title = False
+    elif self.head and tag == 'h%d' % self.head[0]:
+      text = ' '.join(''.join(self.head[1]).split())
+      if text:
+        self.headings.append((self.head[0], text))
+      self.head = None
 
   def handle_data(self, data):
-    if self.tag == 'title':
+    if self.in_title:
       self.title += data
-    elif self.tag == 'h1':
-      self.h1 += data
-    elif self.tag in ('p', 'li', 'span', 'strong', 'em', 'a', 'td', None):
+    elif self._dropped():
+      return
+    elif self.head is not None:
+      self.head[1].append(data)
+    else:
       self.cur.append(data)
+
+  def close(self):
+    super().close()
+    self._flush()
 
 
 def a_confluence(path, opts):
-  """Confluence HTML export folder: page title = term, first paragraph =
-  definition. Sidebar/breadcrumb boilerplate is skipped by length."""
+  """Confluence HTML export folder: first h1 (else <title>, first heading,
+  file name) = term, first prose paragraph after it = definition.
+  Navigation, breadcrumbs, metadata and boilerplate are skipped."""
   root = path if os.path.isdir(path) else os.path.dirname(path)
   for f in _walk(path, ('.html', '.htm')):
-    raw = read_source_text(f)
-    p = _Text()
-    p.feed(raw)
-    name = (p.h1 or p.title).strip()
-    name = re.sub(r'^.*? : ', '', name)
-    paras = [x for x in p.paras if len(x) > 25]
+    p = _Page()
+    p.feed(read_source_text(f))
+    p.close()
+    h1 = next((t for lvl, t in p.headings if lvl == 1), '')
+    first = p.headings[0][1] if p.headings else ''
+    name = (h1 or p.title.strip() or first or title_from_filename(f)).strip()
+    name = re.sub(r'^.*? : ', '', ' '.join(name.split()))
     if not name or name.lower() in ('index', 'home'):
       continue
+    heads = {t.lower() for _, t in p.headings}
+    anchor = 1 if h1 else 0
+    paras = [t for seen, t in p.paras
+             if seen >= anchor and len(t) > 25 and t.lower() not in heads
+             and not is_boilerplate(t)]
     defn = paras[0] if paras else ''
     yield {'name': name, 'definition': defn, 'source': 'confluence',
            'aliases': [], 'type_hint': guess_type(defn), 'links': [],
@@ -330,6 +478,9 @@ def a_confluence(path, opts):
 
 
 def a_docx(path, opts):
+  """Word documents: `Term: definition` paragraphs, plus the first title or
+  heading (else the first paragraph) as one candidate whose definition is
+  the first body paragraph. Heading paragraphs are never definitions."""
   w = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
   for f in _walk(path, ('.docx',)):
     try:
@@ -338,22 +489,32 @@ def a_docx(path, opts):
     except (zipfile.BadZipFile, KeyError, ET.ParseError) as exc:
       raise SourceError('cannot read %s: not a valid .docx file (%s)' % (
         f, exc))
-    paras = [''.join(t.text or '' for t in p.iter(w + 't'))
-             for p in root.iter(w + 'p')]
-    paras = [x.strip() for x in paras if x.strip()]
-    for ln in paras:
+    paras = []  # (is_heading, text)
+    for p in root.iter(w + 'p'):
+      text = ''.join(t.text or '' for t in p.iter(w + 't')).strip()
+      style = p.find('%spPr/%spStyle' % (w, w))
+      val = style.get(w + 'val') if style is not None else ''
+      if text:
+        paras.append((bool(HEADING_STYLE.match(val or '')), text))
+    if not paras:
+      continue
+    ref = os.path.basename(f)
+    for is_head, ln in paras:
       m = DEF_LINE.match(ln)
-      if m:
+      if m and not is_head and m.group(1).strip().lower() not in LABELS:
         yield {'name': m.group(1).strip(), 'definition': m.group(2).strip(),
                'source': 'docx', 'aliases': [], 'links': [], 'tags': [],
                'bullets': [], 'type_hint': guess_type(m.group(2)),
-               'source_ref': os.path.basename(f), 'text': ''}
-    if paras:
-      body = [x for x in paras[1:] if len(x) > 25]
-      yield {'name': paras[0][:80], 'definition': body[0] if body else '',
-             'source': 'docx', 'aliases': [], 'links': [], 'tags': [],
-             'bullets': body[1:4], 'type_hint': guess_type(' '.join(body)),
-             'source_ref': os.path.basename(f), 'text': ' '.join(paras)}
+               'source_ref': ref, 'text': ''}
+    i = next((k for k, (h, _) in enumerate(paras) if h), 0)
+    body = [t for k, (h, t) in enumerate(paras)
+            if k != i and not h and len(t) > 25 and not is_boilerplate(t)
+            and not (DEF_LINE.match(t) and DEF_LINE.match(t).group(
+              1).strip().lower() in LABELS)]
+    yield {'name': paras[i][1][:80], 'definition': body[0] if body else '',
+           'source': 'docx', 'aliases': [], 'links': [], 'tags': [],
+           'bullets': body[1:4], 'type_hint': guess_type(' '.join(body)),
+           'source_ref': ref, 'text': ' '.join(t for _, t in paras)}
 
 
 ADAPTERS = {
